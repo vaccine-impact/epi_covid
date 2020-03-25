@@ -22,7 +22,7 @@ tic ()
 # ------------------------------------------------------------------------------
 # Extract vaccine coverage estimates for 2018 from WUENIC 2018
 # ------------------------------------------------------------------------------
-wuenic_vaccine_coverage <- function (allburden) {
+wuenic_vaccine_coverage <- function () {
 
 } # end of function -- combine_burden_estimate
 # ------------------------------------------------------------------------------
@@ -34,8 +34,15 @@ wuenic_vaccine_coverage <- function (allburden) {
 # start of program
 print (Sys.time ())
 
+# move to base directory (run code from source directory)
+source_wd <- getwd ()
+setwd ("../")
+
 # extract vaccine coverage estimates for 2018 from WUENIC 2018
 wuenic <- wuenic_vaccine_coverage ()
+
+# return to source directory
+setwd (source_wd)
 
 # end of program
 print (Sys.time ())
