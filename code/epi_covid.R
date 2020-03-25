@@ -6,7 +6,9 @@
 # load libraries
 library (data.table)
 library (ggplot2)
+library (readxl)
 library (tictoc)
+library (tidyverse)
 
 # remove all objects from workspace
 rm (list = ls ())
@@ -20,9 +22,34 @@ tic ()
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
-# Extract vaccine coverage estimates for 2018 from WUENIC 2018
+# Extract vaccine coverage estimates for 2018 from WUENIC (Last update: 15-July-2019)
 # ------------------------------------------------------------------------------
 wuenic_vaccine_coverage <- function () {
+  
+  setwd ("C:/Users/kajam/OneDrive/Documents/GitHub/epi_covid")  # debug #
+  
+  # wuenic excel file containing vaccine coverage data
+  wuenic_file <- "data/wuenic_15Jul2019.xls"
+  
+  # read wuenic vaccine coverage data
+  bcg <- read_excel (wuenic_file, sheet = "BCG")
+  dtp1 <- read_excel (wuenic_file, sheet = "DTP1")
+  dtp3 <- read_excel (wuenic_file, sheet = "DTP3")
+  hepb_bd <- read_excel (wuenic_file, sheet = "HepB_BD")
+  hepb3 <- read_excel (wuenic_file, sheet = "HepB3")
+  hib3 <- read_excel (wuenic_file, sheet = "Hib3")
+  ipv1 <- read_excel (wuenic_file, sheet = "IPV1")
+  
+  setDT (bcg)
+  
+  
+  mad <- wuenic_file %>%
+    excel_sheets() %>%
+    set_names() %>%
+    map_df(read_excel,
+           path = wuenic_file)
+  
+  mad
 
 } # end of function -- combine_burden_estimate
 # ------------------------------------------------------------------------------
@@ -38,7 +65,7 @@ print (Sys.time ())
 source_wd <- getwd ()
 setwd ("../")
 
-# extract vaccine coverage estimates for 2018 from WUENIC 2018
+# extract vaccine coverage estimates for 2018 from WUENIC
 wuenic <- wuenic_vaccine_coverage ()
 
 # return to source directory
