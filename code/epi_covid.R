@@ -150,7 +150,7 @@ estimate_covid_deaths <- function (vaccine_impact) {
   
   return (vaccine_covid_impact)
   
-} # end of function -- deaths_covid
+} # end of function -- estimate_covid_deaths
 # ------------------------------------------------------------------------------
 
 
