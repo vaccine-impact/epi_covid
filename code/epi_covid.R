@@ -30,7 +30,9 @@ get_vaccine_coverage <- function () {
   vaccine_coverage <- data.vaccine_coverage
   
   # year of vaccination
-  setnames (vaccine_coverage, old = "Year", new = "vac_year")  
+  setnames (vaccine_coverage, 
+            old = c ("Cname",   "Year"), 
+            new = c ("Country", "vac_year") ) 
   
   # extract data for 54 countries in Africa
   vaccine_coverage <- vaccine_coverage [Continent == "Africa" & vac_year == 2018 ]
@@ -47,12 +49,71 @@ get_vaccine_coverage <- function () {
 # ------------------------------------------------------------------------------
 
 
+# ------------------------------------------------------------------------------
+# Add population estimates from UNWPP 2019 
+# ------------------------------------------------------------------------------
+add_population <- function (vaccine_coverage) {
+  
+  vaccine_coverage_pop <- vaccine_coverage
+  
+  # add population year
+  vaccine_coverage_pop [, pop_year := 2020]
+  
+  # add age of vaccination
+  vaccine_coverage_pop [, age := 0]
+  vaccine_coverage_pop [Vaccine == "MCV2",   age := 1]
+  vaccine_coverage_pop [Vaccine == "HPVfem", age := 12]
+  vaccine_coverage_pop [Vaccine == "HPVfem" & Country == "South Africa", age := 9]
+  vaccine_coverage_pop [Vaccine == "HPVfem" & Country == "Ethiopia",     age := 14]
+  
+  # add gender
+  vaccine_coverage_pop [, gender := "both"]
+  vaccine_coverage_pop [Vaccine == "HPVfem", gender := "female"]
+  
+  # load unwpp 2019 population estimates
+  load ("data/data.population_both.rda")
+  load ("data/data.population_female.rda")
+  
+  # add population
+  vaccine_coverage_pop_both <- merge (
+    vaccine_coverage_pop [gender == "both"], 
+    data.population_both, 
+    by.x = c ("ISO_code",     "pop_year", "age",      "gender"), 
+    by.y = c ("country_code", "year",     "age_from", "gender"), 
+    all.x = TRUE
+    )
+  
+  vaccine_coverage_pop_female <- merge (
+    vaccine_coverage_pop [gender == "female"], 
+    data.population_female, 
+    by.x = c ("ISO_code",     "pop_year", "age",      "gender"), 
+    by.y = c ("country_code", "year",     "age_from", "gender"), 
+    all.x = TRUE
+  )
+  
+  vaccine_coverage_pop <- 
+    rbindlist (list (vaccine_coverage_pop_both, vaccine_coverage_pop_female), 
+               use.names = TRUE, 
+               fill      = TRUE)
+  
+  setnames (vaccine_coverage_pop, old = "value", new = c ("population") ) 
+  vaccine_coverage_pop [, c("country_code_numeric", "country", "age_to") := NULL] 
+  
+  # add vaccinated population
+  vaccine_coverage_pop [, vac_population := (population * Percent_covrage/100)]
+  
+  # return vaccine coverage estimates 
+  return (vaccine_coverage_pop)
+  
+} # end of function -- add_population
+# ------------------------------------------------------------------------------
+
 
 # ------------------------------------------------------------------------------
 # estimate potential deaths due to covid-19 by continuing vaccination programmes
 estimate_covid_deaths <- function (vaccine_impact) {
   
-  # TO DO for Kevin: Please implement this function
+  # TO DO for Kevin/Simon: Please implement this function
   vaccine_covid_impact <- vaccine_impact 
   
   # add a column "covid_deaths" to "vaccine_covid_impact" table 
@@ -77,6 +138,8 @@ estimate_covid_deaths <- function (vaccine_impact) {
 print (Sys.time ())
 tic ()
 
+setwd ("C:/Users/kajam/OneDrive/Documents/GitHub/epi_covid/code") # debug
+
 # move to base directory (run code from source directory)
 source_wd <- getwd ()
 setwd ("../")
@@ -85,13 +148,13 @@ setwd ("../")
 vaccine_coverage <- get_vaccine_coverage ()
 
 # add population estimates from UNWPP 2019
-vaccine_coverage_population <- add_population (vaccine_coverage)
+vaccine_coverage_pop <- add_population (vaccine_coverage)
 
 # add deaths averted by vaccination
-vaccine_impact <- deaths_averted_vaccination (vaccine_coverage_population)
+vaccine_impact <- deaths_averted_vaccination (vaccine_coverage_pop)
 
 # ------------------------------------------------------------------------------
-# TO DO for Kevin: Please implement this function
+# TO DO for Kevin/Simon: Please implement this function
 #
 # estimate potential deaths due to covid-19 by continuing vaccination programmes
 vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact)
