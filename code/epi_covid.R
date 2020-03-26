@@ -110,6 +110,27 @@ add_population <- function (vaccine_coverage) {
 
 
 # ------------------------------------------------------------------------------
+# add deaths averted by vaccination
+deaths_averted_vaccination <- function (vaccine_coverage_pop) {
+  
+  vaccine_impact <- vaccine_coverage_pop
+  
+  vaccine_impact [, deaths_averted_vac := 0]
+  
+  # TO BE UPDATED
+  
+  
+  
+  
+  
+  
+  return (vaccine_impact)
+  
+} # end of function -- deaths_averted_vaccination
+# ------------------------------------------------------------------------------
+
+
+# ------------------------------------------------------------------------------
 # estimate potential deaths due to covid-19 by continuing vaccination programmes
 estimate_covid_deaths <- function (vaccine_impact) {
   
@@ -119,6 +140,9 @@ estimate_covid_deaths <- function (vaccine_impact) {
   # add a column "covid_deaths" to "vaccine_covid_impact" table 
   # for potential deaths due to covid-19 by continuing vaccination programmes
   
+  vaccine_covid_impact [, covid_deaths := 0]
+  
+  # TO BE UPDATED
   
   
   
@@ -127,6 +151,45 @@ estimate_covid_deaths <- function (vaccine_impact) {
   return (vaccine_covid_impact)
   
 } # end of function -- deaths_covid
+# ------------------------------------------------------------------------------
+
+
+# ------------------------------------------------------------------------------
+# estimate benefit risk ratio
+benefit_risk_ratio <- function (vaccine_covid_impact) {
+  
+  benefit_risk <- vaccine_covid_impact
+  
+  # estimate benefit ratio
+  benefit_risk [, benefit_risk_ratio := deaths_averted_vac / covid_deaths]
+  
+  # TO BE UPDATED
+  # estimate benefit risk ratios at the country level across all 9 vaccines
+  
+  
+  
+  
+  
+  return (benefit_risk)
+  
+} # end of function -- benefit_risk_ratio
+# ------------------------------------------------------------------------------
+
+
+# ------------------------------------------------------------------------------
+# generate map of benefit risk ratio
+benefit_risk_ratio_map <- function (benefit_risk) {
+  
+  # TO BE UPDATED
+  
+  
+  
+  
+  
+  
+
+  
+} # end of function -- benefit_risk_ratio_map
 # ------------------------------------------------------------------------------
 
 
@@ -159,10 +222,10 @@ vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact)
 # ------------------------------------------------------------------------------
 
 # estimate benefit risk ratio
-benefit_risk_ratio <- benefit_risk (vaccine_covid_impact)
+benefit_risk <- benefit_risk_ratio (vaccine_covid_impact)
 
 # generate map of benefit risk ratio
-benefit_risk_ratio_map (benefit_risk_ratio)
+benefit_risk_ratio_map (benefit_risk)
 
 # return to source directory
 setwd (source_wd)
