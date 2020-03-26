@@ -138,8 +138,6 @@ estimate_covid_deaths <- function (vaccine_impact) {
 print (Sys.time ())
 tic ()
 
-setwd ("C:/Users/kajam/OneDrive/Documents/GitHub/epi_covid/code") # debug
-
 # move to base directory (run code from source directory)
 source_wd <- getwd ()
 setwd ("../")
