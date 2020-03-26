@@ -1,4 +1,5 @@
 # epi_covid.R
+# run it from the source directory
 
 # To assess the health benefits of vaccination versus the risks of sustaining or 
 # suspending immunisation programmes in Africa during the COVID-19 pandemic. 
@@ -6,72 +7,106 @@
 # load libraries
 library (data.table)
 library (ggplot2)
-library (readxl)
 library (tictoc)
-library (tidyverse)
 
 # remove all objects from workspace
 rm (list = ls ())
 
-# start time
-print (Sys.time ())
-tic ()
 
 # ------------------------------------------------------------------------------
 # functions
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
-# Extract vaccine coverage estimates for 2018 from WUENIC (Last update: 15-July-2019)
+# Extract vaccine coverage estimates for 2018 from WHO for 54 African countries 
 # ------------------------------------------------------------------------------
-wuenic_vaccine_coverage <- function () {
+get_vaccine_coverage <- function () {
   
-  setwd ("C:/Users/kajam/OneDrive/Documents/GitHub/epi_covid")  # debug #
+  # Source: WHO vaccine-preventable diseases: monitoring system 2019 global summary
+  # Last update: 10 Dec 2019
+  # http://www.who.int/entity/immunization/monitoring_surveillance/data/coverage_series.xls
   
-  # wuenic excel file containing vaccine coverage data
-  wuenic_file <- "data/wuenic_15Jul2019.xls"
+  load ("data/data.vaccine_coverage.rda")
+  vaccine_coverage <- data.vaccine_coverage
   
-  # read wuenic vaccine coverage data
-  bcg <- read_excel (wuenic_file, sheet = "BCG")
-  dtp1 <- read_excel (wuenic_file, sheet = "DTP1")
-  dtp3 <- read_excel (wuenic_file, sheet = "DTP3")
-  hepb_bd <- read_excel (wuenic_file, sheet = "HepB_BD")
-  hepb3 <- read_excel (wuenic_file, sheet = "HepB3")
-  hib3 <- read_excel (wuenic_file, sheet = "Hib3")
-  ipv1 <- read_excel (wuenic_file, sheet = "IPV1")
+  # year of vaccination
+  setnames (vaccine_coverage, old = "Year", new = "vac_year")  
   
-  setDT (bcg)
+  # extract data for 54 countries in Africa
+  vaccine_coverage <- vaccine_coverage [Continent == "Africa" & vac_year == 2018 ]
   
+  # extract data for 9 vaccines 
+  # HepB3, Hib3, HPVfem, MCV1 & MCV2, MenA, PCV3, RotaC, RCV1, YFV
+  vaccine_coverage <- vaccine_coverage [Vaccine %in% c("HepB3", "Hib3", "HPVfem", 
+                                                       "MCV1", "MCV2", "MenA", "PCV3", 
+                                                       "RotaC", "RCV1", "YFV")]
+  # return vaccine coverage estimates 
+  return (vaccine_coverage)
   
-  mad <- wuenic_file %>%
-    excel_sheets() %>%
-    set_names() %>%
-    map_df(read_excel,
-           path = wuenic_file)
-  
-  mad
-
-} # end of function -- combine_burden_estimate
+} # end of function -- get_vaccine_coverage
 # ------------------------------------------------------------------------------
 
+
+
 # ------------------------------------------------------------------------------
-# main program
+# estimate potential deaths due to covid-19 by continuing vaccination programmes
+estimate_covid_deaths <- function (vaccine_impact) {
+  
+  # TO DO for Kevin: Please implement this function
+  vaccine_covid_impact <- vaccine_impact 
+  
+  # add a column "covid_deaths" to "vaccine_covid_impact" table 
+  # for potential deaths due to covid-19 by continuing vaccination programmes
+  
+  
+  
+  
+  
+  
+  return (vaccine_covid_impact)
+  
+} # end of function -- deaths_covid
 # ------------------------------------------------------------------------------
 
-# start of program
+
+# ------------------------------------------------------------------------------
+# main program 
+# ------------------------------------------------------------------------------
+
+# start time
 print (Sys.time ())
+tic ()
 
 # move to base directory (run code from source directory)
 source_wd <- getwd ()
 setwd ("../")
 
-# extract vaccine coverage estimates for 2018 from WUENIC
-wuenic <- wuenic_vaccine_coverage ()
+# extract vaccine coverage estimates for 2018 from WHO for 54 African countries
+vaccine_coverage <- get_vaccine_coverage ()
+
+# add population estimates from UNWPP 2019
+vaccine_coverage_population <- add_population (vaccine_coverage)
+
+# add deaths averted by vaccination
+vaccine_impact <- deaths_averted_vaccination (vaccine_coverage_population)
+
+# ------------------------------------------------------------------------------
+# TO DO for Kevin: Please implement this function
+#
+# estimate potential deaths due to covid-19 by continuing vaccination programmes
+vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact)
+# ------------------------------------------------------------------------------
+
+# estimate benefit risk ratio
+benefit_risk_ratio <- benefit_risk (vaccine_covid_impact)
+
+# generate map of benefit risk ratio
+benefit_risk_ratio_map (benefit_risk_ratio)
 
 # return to source directory
 setwd (source_wd)
 
-# end of program
+# end time
 print (Sys.time ())
 toc ()
 # ------------------------------------------------------------------------------
