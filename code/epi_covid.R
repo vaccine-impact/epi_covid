@@ -296,8 +296,8 @@ source_wd <- getwd ()
 setwd ("../")
 
 # potential delay or suspension period of EPI due to COVID-19
-suspension_period        <- 0.5  # unit in year
-suspension_period_string <- "6 months"
+suspension_period        <- 6/12  # unit in year
+suspension_period_string <- "6 month"
 
 # extract vaccine coverage estimates for 2018 from WHO for 54 African countries
 vaccine_coverage <- get_vaccine_coverage ()
