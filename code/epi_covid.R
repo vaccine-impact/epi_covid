@@ -182,7 +182,7 @@ estimate_covid_deaths <- function (vaccine_impact,
   
   # infection_risk = 0.001   # upper bound using Mark's assumption
   # infection_risk = 0.00001 # lower bound using Mark's assumption
-  infection_risk <- 0.04 #assume all vaccinators get infection of 6-month suspension period
+  infection_risk <- 0.04     # assume all vaccinators get infection of 6-month suspension period
   
   # Infection Fatality Risk from imperial work - Verity et al
   # ifr(age0-9)=0.0016%, ifr(age10-19)=0.007%, ifr(age20-29)=0.031%, ifr(age30-39)=0.084%
