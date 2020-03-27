@@ -167,15 +167,24 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop) {
 
 # ------------------------------------------------------------------------------
 # estimate potential deaths due to covid-19 by continuing vaccination programmes
-estimate_covid_deaths <- function (vaccine_impact) {
+estimate_covid_deaths <- function (vaccine_impact, 
+                                   suspension_period) {
+  
+  vaccine_covid_impact <- vaccine_impact 
+  
+  # timeline during which the covid deaths occur, that is 
+  # if EPI is suspended for this period of time (unit in year), 
+  # then what is the estimated number of covid deaths that are prevented 
+  # by suspension of EPI
+  vaccine_covid_impact [, suspension_period := suspension_period]
   
   # TO DO for Kevin/Simon: Please implement this function
-  vaccine_covid_impact <- vaccine_impact 
+
   
   # add a column "covid_deaths" to "vaccine_covid_impact" table 
   # for potential deaths due to covid-19 by continuing vaccination programmes
   
-  vaccine_covid_impact [, covid_deaths := 0]
+  vaccine_covid_impact [, covid_deaths := vac_population * 0.0001]
   
   # TO BE UPDATED
   
@@ -191,12 +200,14 @@ estimate_covid_deaths <- function (vaccine_impact) {
 
 # ------------------------------------------------------------------------------
 # estimate benefit risk ratio
-benefit_risk_ratio <- function (vaccine_covid_impact) {
+benefit_risk_ratio <- function (vaccine_covid_impact, 
+                                suspension_period) {
   
   benefit_risk <- vaccine_covid_impact
   
   # estimate benefit ratio
-  benefit_risk [, benefit_risk_ratio := vac_deaths_averted / covid_deaths]
+  benefit_risk [, benefit_risk_ratio := 
+                  (vac_deaths_averted * suspension_period) / covid_deaths]
   
   # TO BE UPDATED
   # estimate benefit risk ratios at the country level across all vaccines
@@ -213,8 +224,13 @@ benefit_risk_ratio <- function (vaccine_covid_impact) {
 
 # ------------------------------------------------------------------------------
 # generate map of benefit risk ratio
-benefit_risk_ratio_map <- function (benefit_risk) {
+benefit_risk_ratio_map <- function (benefit_risk, 
+                                    suspension_period_string) {
   
+  # save benefit-risk results in tables folder
+  fwrite (benefit_risk, file = paste0 ("figures/benefit_risk_results_", 
+                                       suspension_period_string, 
+                                       "_suspension.csv") )
   # map tutorial
   # https://www.r-spatial.org/r/2018/10/25/ggplot2-sf.html
   africa <- ne_countries (continent   = 'africa', 
@@ -223,14 +239,16 @@ benefit_risk_ratio_map <- function (benefit_risk) {
   setDT (africa)
   setkey (africa, sov_a3)
   
-  pdf ("figures/benefit_risk_ratio_maps.pdf")
-  theme_set (theme_bw())
+  pdf (paste0 ("figures/benefit_risk_ratio_maps_", 
+               suspension_period_string, "_suspension.pdf"))
   
   vaccines <- unique (benefit_risk$Vaccine)
   
   # drop MCV2 for maps
   vaccines <- vaccines [vaccines != "MCV2"]
-  
+
+  theme_set (theme_bw())
+    
   # generate benefit-risk ratio maps for different vaccines
   for (vaccine in vaccines) {
     
@@ -241,12 +259,12 @@ benefit_risk_ratio_map <- function (benefit_risk) {
                  by.y = "iso_a3", 
                  all  = T )
     
-    # map of cases averted per 1000 vaccinated girls
+    # map of benefit-risk ratio for different vaccines
     p <- ggplot (data = dt) +
-      geom_sf (aes (fill = vac_deaths_averted, geometry = geometry)) + 
+      geom_sf (aes (fill = benefit_risk_ratio, geometry = geometry)) + 
       scale_fill_viridis_c(option = "plasma", direction = -1, na.value = "grey90") +
       labs (title    = "EPI benefits versus COVID-19 risks", 
-            subtitle = vaccine, 
+            subtitle = paste0 (vaccine, " / EPI suspension period: ", suspension_period_string),  
             fill     = "benefit-risk ratio") + 
       #theme (legend.title     = "benefit-risk ratio") + 
       theme (axis.text.x      = element_blank(), axis.ticks = element_blank()) + 
@@ -277,6 +295,10 @@ tic ()
 source_wd <- getwd ()
 setwd ("../")
 
+# potential delay or suspension period of EPI due to COVID-19
+suspension_period        <- 0.5  # unit in year
+suspension_period_string <- "6 months"
+
 # extract vaccine coverage estimates for 2018 from WHO for 54 African countries
 vaccine_coverage <- get_vaccine_coverage ()
 
@@ -290,14 +312,17 @@ vaccine_impact <- deaths_averted_vaccination (vaccine_coverage_pop)
 # TO DO for Kevin/Simon: Please implement this function
 #
 # estimate potential deaths due to covid-19 by continuing vaccination programmes
-vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact)
+vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact, 
+                                               suspension_period)
 # ------------------------------------------------------------------------------
 
 # estimate benefit risk ratio
-benefit_risk <- benefit_risk_ratio (vaccine_covid_impact)
+benefit_risk <- benefit_risk_ratio (vaccine_covid_impact, 
+                                    suspension_period)
 
 # generate map of benefit risk ratio
-benefit_risk_ratio_map (benefit_risk)
+benefit_risk_ratio_map (benefit_risk, 
+                        suspension_period_string)
 
 # return to source directory
 setwd (source_wd)
