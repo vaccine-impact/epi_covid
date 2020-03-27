@@ -38,7 +38,7 @@ get_vaccine_coverage <- function () {
   vaccine_coverage <- vaccine_coverage [Continent == "Africa" & vac_year == 2018 ]
   
   # extract data for 9 vaccines 
-  # HepB3, Hib3, HPVfem, MCV1 & MCV2, MenA, PCV3, RotaC, RCV1, YFV
+  # HepB3, Hib3, HPVfem, MCV1, MenA, PCV3, RotaC, RCV1, YFV
   vaccine_coverage <- vaccine_coverage [Vaccine %in% c("HepB3", "Hib3", "HPVfem", 
                                                        "MCV1", "MCV2", "MenA", "PCV3", 
                                                        "RotaC", "RCV1", "YFV")]
@@ -113,17 +113,50 @@ add_population <- function (vaccine_coverage) {
 # add deaths averted by vaccination
 deaths_averted_vaccination <- function (vaccine_coverage_pop) {
   
-  vaccine_impact <- vaccine_coverage_pop
+  # Estimating the health impact of vaccination against 10 pathogens in 98 low 
+  # and middle income countries from 2000 to 2030
+  # https://www.medrxiv.org/content/10.1101/19004358v1
+  # load vaccine impact estimates
+  load ("data/data.vaccine_impact.rda")
   
-  vaccine_impact [, deaths_averted_vac := 0]
+  # add column for vaccine impact per 1000 fully vaccinated people
+  vaccine_impact <- merge (
+    vaccine_coverage_pop, 
+    data.vaccine_impact, 
+    by.x = c ("ISO_code", "Vaccine"), 
+    by.y = c ("country",  "vaccine"), 
+    all.x = TRUE
+  )
+  
+  # drop redundant columns
+  vaccine_impact [, c("country_name", "gavi73", "who_region") := NULL]
+  
+  # 9 countries with no vaccine impact data from 98 vimc countries
+  # Botswana, Algeria, Gabon, Equatorial Guinea, Libya
+  # Mauritius, Namibia, Seychelles, South Africa
+  #
+  # Congo (COG) -- no vaccine impact data for menA
+  # Sao Tome and Principe -- no vaccine impact data for YFV
+  #
+  # for couuntries wth no vaccine impact values, set them to the mean 
+  # vaccine impact in other African countries for corresponding vaccines
   
   # TO BE UPDATED
   
   
   
   
+  # estimate deaths averted by each vaccine in each country
+  vaccine_impact [, vac_deaths_averted := (vac_population * mid / 1000)]
   
-  
+  # set column order
+  setcolorder (vaccine_impact, 
+               c ("Continent", "ISO_code", "Country", "WHO_Region",   
+                  "pop_year", "age", "gender", "population", 
+                  "Vaccine", "vac_year", "Percent_covrage", "vac_population", 
+                  "deaths_averted_1000FVP", "mid", "low", "high", 
+                  "vac_deaths_averted") )
+
   return (vaccine_impact)
   
 } # end of function -- deaths_averted_vaccination
@@ -161,10 +194,10 @@ benefit_risk_ratio <- function (vaccine_covid_impact) {
   benefit_risk <- vaccine_covid_impact
   
   # estimate benefit ratio
-  benefit_risk [, benefit_risk_ratio := deaths_averted_vac / covid_deaths]
+  benefit_risk [, benefit_risk_ratio := vac_deaths_averted / covid_deaths]
   
   # TO BE UPDATED
-  # estimate benefit risk ratios at the country level across all 9 vaccines
+  # estimate benefit risk ratios at the country level across all vaccines
   
   
   
