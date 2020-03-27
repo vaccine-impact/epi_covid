@@ -7,6 +7,8 @@
 # load libraries
 library (data.table)
 library (ggplot2)
+library (rnaturalearth)
+library (rnaturalearthdata)
 library (tictoc)
 
 # remove all objects from workspace
@@ -213,14 +215,51 @@ benefit_risk_ratio <- function (vaccine_covid_impact) {
 # generate map of benefit risk ratio
 benefit_risk_ratio_map <- function (benefit_risk) {
   
-  # TO BE UPDATED
+  # map tutorial
+  # https://www.r-spatial.org/r/2018/10/25/ggplot2-sf.html
+  africa <- ne_countries (continent   = 'africa', 
+                          scale       = "medium", 
+                          returnclass = "sf")
+  setDT (africa)
+  setkey (africa, sov_a3)
   
+  pdf ("figures/benefit_risk_ratio_maps.pdf")
+  theme_set (theme_bw())
   
+  vaccines <- unique (benefit_risk$Vaccine)
   
+  # drop MCV2 for maps
+  vaccines <- vaccines [vaccines != "MCV2"]
   
-  
-  
-
+  # generate benefit-risk ratio maps for different vaccines
+  for (vaccine in vaccines) {
+    
+    # combine tables to add geometry
+    dt <- merge (x    = benefit_risk [Vaccine == vaccine], 
+                 y    = africa, 
+                 by.x = "ISO_code", 
+                 by.y = "iso_a3", 
+                 all  = T )
+    
+    # map of cases averted per 1000 vaccinated girls
+    p <- ggplot (data = dt) +
+      geom_sf (aes (fill = vac_deaths_averted, geometry = geometry)) + 
+      scale_fill_viridis_c(option = "plasma", direction = -1, na.value = "grey90") +
+      labs (title    = "EPI benefits versus COVID-19 risks", 
+            subtitle = vaccine, 
+            fill     = "benefit-risk ratio") + 
+      #theme (legend.title     = "benefit-risk ratio") + 
+      theme (axis.text.x      = element_blank(), axis.ticks = element_blank()) + 
+      theme (axis.text.y      = element_blank(), axis.ticks = element_blank()) + 
+      theme (panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
+      theme (plot.title       = element_text(size = 12)) +
+      theme (plot.subtitle    = element_text(size = 11)) +
+      theme (legend.title     = element_text(size = 10)) 
+    
+    print (p)
+    
+  }
+  dev.off ()
   
 } # end of function -- benefit_risk_ratio_map
 # ------------------------------------------------------------------------------
