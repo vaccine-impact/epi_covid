@@ -178,24 +178,6 @@ estimate_covid_deaths <- function (vaccine_impact,
   # by suspension of EPI
   vaccine_covid_impact [, suspension_period := suspension_period]
   
-  #Risk that at least one of mother and child get infected by contact with vaccinator
-  
-  # infection_risk = 0.001   # upper bound using Mark's assumption
-  # infection_risk = 0.00001 # lower bound using Mark's assumption
-  infection_risk <- 0.04     # assume all vaccinators get infection of 6-month suspension period
-  
-  # Infection Fatality Risk from imperial work - Verity et al
-  # ifr(age0-9)=0.0016%, ifr(age10-19)=0.007%, ifr(age20-29)=0.031%, ifr(age30-39)=0.084%
-  # ifr(age40-49)=0.16%, ifr(age50-59)=0.60%, ifr(age60-69)=1.9%, ifr(age70-79)=4.3%, ifr(80+)=7.8%
-  
-  ifr_child <- 0.000016 # assume ifr for age 0-9
-  ifr_mother <- 0.00084 # assume ifr for age 30-39 
-  
-  # fatality risk per contact assumping both mother and child get infected
-  
-  fatality_per_contact <- infection_risk * (ifr_child + ifr_mother)
-  # ***need to think about other household contacts***
-  
   # number of contacts with vaccinators 
   # 3x contacts covering PCV3, Hib3, HepB3, MenA, RotaC
   # 1x contacts covering MCV1, RCV1, YFV
@@ -205,18 +187,41 @@ estimate_covid_deaths <- function (vaccine_impact,
   # include here the independent risk based on coverage of each antigen alone, these will be a
   # aggregated outside this function to account for  antingens being grouped into contacts
   
+  # infection risk from a single contact with vaccinator:
+  
+  # inf_risk1 <- 0.001   # upper bound using Mark's assumption
+  # inf_risk1 <- 0.00001 # lower bound using Mark's assumption
+  inf_risk1 <- 0.02     # assumes all vaccinators get infection over 6-month suspension period
+
+  inf_risk2 <- 1 - (1 - inf_risk1)^2 # cum. risk for two visits
+  inf_risk3 <- 1 - (1 - inf_risk1)^3 # cum. risk for three visits
+  
+  # Infection Fatality Risk from imperial work - Verity et al
+  # ifr(age0-9)=0.0016%, ifr(age10-19)=0.007%, ifr(age20-29)=0.031%, ifr(age30-39)=0.084%
+  # ifr(age40-49)=0.16%, ifr(age50-59)=0.60%, ifr(age60-69)=1.9%, ifr(age70-79)=4.3%, ifr(80+)=7.8%
+  
+  ifr_child <- 0.000016 # assume ifr for age 0-9
+  ifr_mother <- 0.00084 # assume ifr for age 30-39 
+  
+  # fatality risk assume if either mother or child become infected then both become infected
+  # ***need to think about other household contacts***
+  
+  fr1 <- 2 * inf_risk1 * (ifr_child + ifr_mother)
+  fr2 <- 2 * inf_risk2 * (ifr_child + ifr_mother)
+  fr3 <- 2 * inf_risk3 * (ifr_child + ifr_mother)
+  
   # add a column "covid_deaths" to "vaccine_covid_impact" table 
   # for potential deaths due to covid-19 by continuing vaccination programmes
   
+  # antigens with 3 contacts
   vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3"), 
-                        covid_deaths := vac_population * suspension_period * 
-                          fatality_per_contact * 3] # 3 contacts for these antigens
+                        covid_deaths := vac_population * suspension_period * fr3]
+  # antigens with 2 contacts
   vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"), 
-                        covid_deaths := vac_population * suspension_period * 
-                          fatality_per_contact * 2] # 2 contacts for these antigens
+                        covid_deaths := vac_population * suspension_period * fr2]
+  # antigens with 1 contacts
   vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"), 
-                        covid_deaths := vac_population * suspension_period * 
-                          fatality_per_contact] # 1 contact for these antigens
+                        covid_deaths := vac_population * suspension_period * fr1] 
   
   
   return (vaccine_covid_impact)
