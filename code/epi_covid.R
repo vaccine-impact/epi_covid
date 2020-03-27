@@ -228,7 +228,7 @@ benefit_risk_ratio_map <- function (benefit_risk,
                                     suspension_period_string) {
   
   # save benefit-risk results in tables folder
-  fwrite (benefit_risk, file = paste0 ("figures/benefit_risk_results_", 
+  fwrite (benefit_risk, file = paste0 ("tables/benefit_risk_results_", 
                                        suspension_period_string, 
                                        "_suspension.csv") )
   # map tutorial
