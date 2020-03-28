@@ -357,40 +357,51 @@ source_wd <- getwd ()
 setwd ("../")
 
 # potential delay or suspension period of EPI due to COVID-19
-suspension_period        <- 6/12  # unit in year
-suspension_period_string <- "6 month"
+# suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
+# suspension_period_strings <- c ("3 months", "6 months", "12 months") 
 
-# age group for vaccine impact -- "all" or "under5" age groups
-age_groups <- c("under5", "all")
+suspension_periods        <- c ( 6/12)  # unit in year
+suspension_period_strings <- c ("6 months") 
 
-for (age_group in age_groups) {
+for (period in 1:length (suspension_periods)) {
   
-  # extract vaccine coverage estimates for 2018 from WHO for 54 African countries
-  vaccine_coverage <- get_vaccine_coverage ()
+  # set suspension period
+  suspension_period        <- suspension_periods        [period]
+  suspension_period_string <- suspension_period_strings [period]
   
-  # add population estimates from UNWPP 2019
-  vaccine_coverage_pop <- add_population (vaccine_coverage)
+  # age group for vaccine impact -- "all" or "under5" age groups
+  age_groups <- c("under5", "all")
   
-  # add deaths averted by vaccination among "all" or "under5" age groups
-  vaccine_impact <- deaths_averted_vaccination (vaccine_coverage_pop, 
-                                                age_group = age_group)
-  
-  # ------------------------------------------------------------------------------
-  # TO DO for Kevin/Simon: Please implement this function
-  #
-  # estimate potential deaths due to covid-19 by continuing vaccination programmes
-  vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact, 
-                                                 suspension_period)
-  # ------------------------------------------------------------------------------
-  
-  # estimate benefit risk ratio
-  benefit_risk <- benefit_risk_ratio (vaccine_covid_impact, 
-                                      suspension_period)
-  
-  # generate map of benefit risk ratio
-  benefit_risk_ratio_map (benefit_risk, 
-                          suspension_period_string, 
-                          age_group = age_group)
+  for (age_group in age_groups) {
+    
+    # extract vaccine coverage estimates for 2018 from WHO for 54 African countries
+    vaccine_coverage <- get_vaccine_coverage ()
+    
+    # add population estimates from UNWPP 2019
+    vaccine_coverage_pop <- add_population (vaccine_coverage)
+    
+    # add deaths averted by vaccination among "all" or "under5" age groups
+    vaccine_impact <- deaths_averted_vaccination (vaccine_coverage_pop, 
+                                                  age_group = age_group)
+    
+    # ------------------------------------------------------------------------------
+    # TO DO for Kevin/Simon: Please implement this function
+    #
+    # estimate potential deaths due to covid-19 by continuing vaccination programmes
+    vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact, 
+                                                   suspension_period)
+    # ------------------------------------------------------------------------------
+    
+    # estimate benefit risk ratio
+    benefit_risk <- benefit_risk_ratio (vaccine_covid_impact, 
+                                        suspension_period)
+    
+    # generate map of benefit risk ratio
+    benefit_risk_ratio_map (benefit_risk, 
+                            suspension_period_string, 
+                            age_group = age_group)
+    
+  }
   
 }
 
