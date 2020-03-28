@@ -176,7 +176,7 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
 # ------------------------------------------------------------------------------
 
 
-# ------------------------------------------------------------------------------
+## ------------------------------------------------------------------------------
 # estimate potential deaths due to covid-19 by continuing vaccination programmes
 estimate_covid_deaths <- function (vaccine_impact, 
                                    suspension_period) {
@@ -197,7 +197,6 @@ estimate_covid_deaths <- function (vaccine_impact,
   p_transmit_community <- 1 # prob. that a community contact transmits
   p_transmit_vaccinator <- p_transmit_community / 2 # assume halved due to better infection control
   
-<<<<<<< HEAD
   vac_contacts_per_visit <- 1       # number vaccinators contacts due to vaccine clinic visit
   community_contacts_per_visit <- 2 # number extra community contacts due to vaccine clinic visit
   
@@ -207,7 +206,7 @@ estimate_covid_deaths <- function (vaccine_impact,
   # for 1 vaccine clinic visit
   hh_inf_risk1 <-  1 - (
     (1 - prev_community * p_transmit_community)^(community_contacts_per_visit * 2) *
-    (1 - prev_vaccinator * p_transmit_vaccinator)^(vac_contacts_per_visit * 2)
+      (1 - prev_vaccinator * p_transmit_vaccinator)^(vac_contacts_per_visit * 2)
   )
   
   # for 2 vaccine clinic visits
@@ -216,21 +215,13 @@ estimate_covid_deaths <- function (vaccine_impact,
     (1 - prev_community * p_transmit_community)^(community_contacts_per_visit * 2 * 2) *
       (1 - prev_vaccinator * p_transmit_vaccinator)^(vac_contacts_per_visit * 2 * 2)
   )
-
+  
   # for 3 vaccine clinic visits
   
   hh_inf_risk3 <-  1 - (
     (1 - prev_community * p_transmit_community)^(community_contacts_per_visit * 2 * 3) *
       (1 - prev_vaccinator * p_transmit_vaccinator)^(vac_contacts_per_visit * 2 * 3)
   )
-=======
-  # inf_risk1 <- 0.001   # upper bound using Mark's assumption
-  # inf_risk1 <- 0.00001 # lower bound using Mark's assumption
-  inf_risk1 <- 0.02     # assumes all vaccinators get infection over 6-month suspension period
-  
-  inf_risk2 <- 1 - (1 - inf_risk1)^2 # cum. risk for two visits
-  inf_risk3 <- 1 - (1 - inf_risk1)^3 # cum. risk for three visits
->>>>>>> a1e9997994b3477fd761a4b8c1bbbf2e4a99ed3d
   
   # Infection Fatality Risk from imperial work - Verity et al
   # ifr(age0-9)=0.0016%, ifr(age10-19)=0.007%, ifr(age20-29)=0.031%, ifr(age30-39)=0.084%
@@ -264,6 +255,7 @@ estimate_covid_deaths <- function (vaccine_impact,
   
 } # end of function -- estimate_covid_deaths
 # ------------------------------------------------------------------------------
+
 
 
 # ------------------------------------------------------------------------------
