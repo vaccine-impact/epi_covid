@@ -191,11 +191,13 @@ estimate_covid_deaths <- function (vaccine_impact,
   
   # infection risk from contacts due to vaccination visits
   
+  baseline_pop_infected = 0.5 #prop. of the pop. who become infected without vaccination visits
+  
   prev_community  <- 0.02 # prev. community infectives based on 50% pop. infected over 6 months
   prev_vaccinator <- 0.04 # prev. vaccinator infectives assuming all infected over 6 months
   
-  p_transmit_community <- 1 # prob. that a community contact transmits
-  p_transmit_vaccinator <- p_transmit_community / 2 # assume halved due to better infection control
+  p_transmit_community <- 0.1 # prob. that a community contact transmits
+  p_transmit_vaccinator <- 0.05 # assume halved due to better infection control
   
   vac_contacts_per_visit <- 1       # number vaccinators contacts due to vaccine clinic visit
   community_contacts_per_visit <- 2 # number extra community contacts due to vaccine clinic visit
@@ -230,12 +232,13 @@ estimate_covid_deaths <- function (vaccine_impact,
   ifr_child <- 0.000016 # assume ifr for age 0-9
   ifr_mother <- 0.00084 # assume ifr for age 30-39 
   
-  # fatality risk currently assuming both mother and child become infected
+  # additional fatality risk above baseline due to vaccine visits
+  # currently assuming both mother and child become infected
   # ***need to think about other household contacts***
   
-  fr1 <- hh_inf_risk1 * (ifr_child + ifr_mother)
-  fr2 <- hh_inf_risk2 * (ifr_child + ifr_mother)
-  fr3 <- hh_inf_risk3 * (ifr_child + ifr_mother)
+  fr1 <- (1 - baseline_pop_infected) * hh_inf_risk1 * (ifr_child + ifr_mother)
+  fr2 <- (1 - baseline_pop_infected) * hh_inf_risk2 * (ifr_child + ifr_mother)
+  fr3 <- (1 - baseline_pop_infected) * hh_inf_risk3 * (ifr_child + ifr_mother)
   
   # add a column "covid_deaths" to "vaccine_covid_impact" table 
   # for potential deaths due to covid-19 by continuing vaccination programmes
@@ -378,8 +381,7 @@ setwd ("../")
 # suspension_period_strings <- c ("3 months", "6 months", "12 months") 
 
 suspension_periods        <- c ( 6/12)  # unit in year
-suspension_period_strings <- c ("6 months") 
-
+suspension_period_strings <- c ("6 months")
 for (period in 1:length (suspension_periods)) {
   
   # set suspension period
