@@ -83,7 +83,7 @@ add_population <- function (vaccine_coverage) {
     by.x = c ("ISO_code",     "pop_year", "age",      "gender"), 
     by.y = c ("country_code", "year",     "age_from", "gender"), 
     all.x = TRUE
-    )
+  )
   
   vaccine_coverage_pop_female <- merge (
     vaccine_coverage_pop [gender == "female"], 
@@ -112,19 +112,30 @@ add_population <- function (vaccine_coverage) {
 
 
 # ------------------------------------------------------------------------------
-# add deaths averted by vaccination
-deaths_averted_vaccination <- function (vaccine_coverage_pop) {
+# add deaths averted by vaccination among "all" or "under5" age groups
+deaths_averted_vaccination <- function (vaccine_coverage_pop, 
+                                        age_group) {
   
   # Estimating the health impact of vaccination against 10 pathogens in 98 low 
   # and middle income countries from 2000 to 2030
   # https://www.medrxiv.org/content/10.1101/19004358v1
-  # load vaccine impact estimates
-  load ("data/data.vaccine_impact.rda")
+  
+  # load vaccine impact estimates among "all" or "under5" age groups
+  if (age_group == "all") { 
+    
+    load ("data/data.vaccine_impact.rda")
+    vaccine_impact <- data.vaccine_impact
+    
+  } else if (age_group == "under5") { 
+    
+    load ("data/data.vaccine_impact_u5.rda")
+    vaccine_impact <- data.vaccine_impact_u5
+  }
   
   # add column for vaccine impact per 1000 fully vaccinated people
   vaccine_impact <- merge (
     vaccine_coverage_pop, 
-    data.vaccine_impact, 
+    vaccine_impact, 
     by.x = c ("ISO_code", "Vaccine"), 
     by.y = c ("country",  "vaccine"), 
     all.x = TRUE
@@ -158,7 +169,7 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop) {
                   "Vaccine", "vac_year", "Percent_covrage", "vac_population", 
                   "deaths_averted_1000FVP", "mid", "low", "high", 
                   "vac_deaths_averted") )
-
+  
   return (vaccine_impact)
   
 } # end of function -- deaths_averted_vaccination
@@ -192,7 +203,7 @@ estimate_covid_deaths <- function (vaccine_impact,
   # inf_risk1 <- 0.001   # upper bound using Mark's assumption
   # inf_risk1 <- 0.00001 # lower bound using Mark's assumption
   inf_risk1 <- 0.02     # assumes all vaccinators get infection over 6-month suspension period
-
+  
   inf_risk2 <- 1 - (1 - inf_risk1)^2 # cum. risk for two visits
   inf_risk3 <- 1 - (1 - inf_risk1)^3 # cum. risk for three visits
   
@@ -257,12 +268,27 @@ benefit_risk_ratio <- function (vaccine_covid_impact,
 # ------------------------------------------------------------------------------
 # generate map of benefit risk ratio
 benefit_risk_ratio_map <- function (benefit_risk, 
-                                    suspension_period_string) {
+                                    suspension_period_string, 
+                                    age_group) {
   
   # save benefit-risk results in tables folder
   fwrite (benefit_risk, file = paste0 ("tables/benefit_risk_results_", 
                                        suspension_period_string, 
-                                       "_suspension.csv") )
+                                       "_suspension_", 
+                                       age_group, 
+                                       ".csv") )
+  
+  # vaccination impact timeline -- lifetime or under 5-year-old children
+  if (age_group == "all") {
+    
+    vaccine_impact_timeline <- "lifetime"
+    
+  } else if (age_group == "under5") {
+    
+    vaccine_impact_timeline <- "under 5-year-old children"
+  } 
+  
+  
   # map tutorial
   # https://www.r-spatial.org/r/2018/10/25/ggplot2-sf.html
   africa <- ne_countries (continent   = 'africa', 
@@ -272,15 +298,16 @@ benefit_risk_ratio_map <- function (benefit_risk,
   setkey (africa, sov_a3)
   
   pdf (paste0 ("figures/benefit_risk_ratio_maps_", 
-               suspension_period_string, "_suspension.pdf"))
+               suspension_period_string, "_suspension_",
+               age_group, ".pdf"))
   
   vaccines <- unique (benefit_risk$Vaccine)
   
   # drop MCV2 for maps
   vaccines <- vaccines [vaccines != "MCV2"]
-
+  
   theme_set (theme_bw())
-    
+  
   # generate benefit-risk ratio maps for different vaccines
   for (vaccine in vaccines) {
     
@@ -296,7 +323,9 @@ benefit_risk_ratio_map <- function (benefit_risk,
       geom_sf (aes (fill = benefit_risk_ratio, geometry = geometry)) + 
       scale_fill_viridis_c(option = "plasma", direction = -1, na.value = "grey90") +
       labs (title    = "EPI benefits versus COVID-19 risks", 
-            subtitle = paste0 (vaccine, " / EPI suspension period: ", suspension_period_string),  
+            subtitle = paste0 (vaccine, 
+                               " / EPI suspension period: ", suspension_period_string, 
+                               " / vaccine impact: ", vaccine_impact_timeline),  
             fill     = "benefit-risk ratio") + 
       #theme (legend.title     = "benefit-risk ratio") + 
       theme (axis.text.x      = element_blank(), axis.ticks = element_blank()) + 
@@ -331,30 +360,39 @@ setwd ("../")
 suspension_period        <- 6/12  # unit in year
 suspension_period_string <- "6 month"
 
-# extract vaccine coverage estimates for 2018 from WHO for 54 African countries
-vaccine_coverage <- get_vaccine_coverage ()
+# age group for vaccine impact -- "all" or "under5" age groups
+age_groups <- c("under5", "all")
 
-# add population estimates from UNWPP 2019
-vaccine_coverage_pop <- add_population (vaccine_coverage)
-
-# add deaths averted by vaccination
-vaccine_impact <- deaths_averted_vaccination (vaccine_coverage_pop)
-
-# ------------------------------------------------------------------------------
-# TO DO for Kevin/Simon: Please implement this function
-#
-# estimate potential deaths due to covid-19 by continuing vaccination programmes
-vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact, 
-                                               suspension_period)
-# ------------------------------------------------------------------------------
-
-# estimate benefit risk ratio
-benefit_risk <- benefit_risk_ratio (vaccine_covid_impact, 
-                                    suspension_period)
-
-# generate map of benefit risk ratio
-benefit_risk_ratio_map (benefit_risk, 
-                        suspension_period_string)
+for (age_group in age_groups) {
+  
+  # extract vaccine coverage estimates for 2018 from WHO for 54 African countries
+  vaccine_coverage <- get_vaccine_coverage ()
+  
+  # add population estimates from UNWPP 2019
+  vaccine_coverage_pop <- add_population (vaccine_coverage)
+  
+  # add deaths averted by vaccination among "all" or "under5" age groups
+  vaccine_impact <- deaths_averted_vaccination (vaccine_coverage_pop, 
+                                                age_group = age_group)
+  
+  # ------------------------------------------------------------------------------
+  # TO DO for Kevin/Simon: Please implement this function
+  #
+  # estimate potential deaths due to covid-19 by continuing vaccination programmes
+  vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact, 
+                                                 suspension_period)
+  # ------------------------------------------------------------------------------
+  
+  # estimate benefit risk ratio
+  benefit_risk <- benefit_risk_ratio (vaccine_covid_impact, 
+                                      suspension_period)
+  
+  # generate map of benefit risk ratio
+  benefit_risk_ratio_map (benefit_risk, 
+                          suspension_period_string, 
+                          age_group = age_group)
+  
+}
 
 # return to source directory
 setwd (source_wd)
