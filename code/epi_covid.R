@@ -178,23 +178,39 @@ estimate_covid_deaths <- function (vaccine_impact,
   # by suspension of EPI
   vaccine_covid_impact [, suspension_period := suspension_period]
   
-  # number of contacts with vaccinators 
-  # 3x contacts covering PCV3, Hib3, HepB3, MenA, RotaC
-  # 1x contacts covering MCV1, RCV1, YFV
-  # 1x contacts covering MCV2
-  # 2x contact based on coverage of HPV 
+  # infection risk from contacts due to vaccination visits
   
-  # include here the independent risk based on coverage of each antigen alone, these will be a
-  # aggregated outside this function to account for  antingens being grouped into contacts
+  prev_community  <- 0.02 # prev. community infectives based on 50% pop. infected over 6 months
+  prev_vaccinator <- 0.04 # prev. vaccinator infectives assuming all infected over 6 months
   
-  # infection risk from a single contact with vaccinator:
+  p_transmit_community <- 1 # prob. that a community contact transmits
+  p_transmit_vaccinator <- p_transmit_community / 2 # assume halved due to better infection control
   
-  # inf_risk1 <- 0.001   # upper bound using Mark's assumption
-  # inf_risk1 <- 0.00001 # lower bound using Mark's assumption
-  inf_risk1 <- 0.02     # assumes all vaccinators get infection over 6-month suspension period
+  vac_contacts_per_visit <- 1       # number vaccinators contacts due to vaccine clinic visit
+  community_contacts_per_visit <- 2 # number extra community contacts due to vaccine clinic visit
+  
+  # risk of household infection for one clinic visit - note additional factor of 2 because both
+  # child and caregiver could become infected
+  
+  # for 1 vaccine clinic visit
+  hh_inf_risk1 <-  1 - (
+    (1 - prev_community * p_transmit_community)^(community_contacts_per_visit * 2) *
+    (1 - prev_vaccinator * p_transmit_vaccinator)^(vac_contacts_per_visit * 2)
+  )
+  
+  # for 2 vaccine clinic visits
+  
+  hh_inf_risk2 <-  1 - (
+    (1 - prev_community * p_transmit_community)^(community_contacts_per_visit * 2 * 2) *
+      (1 - prev_vaccinator * p_transmit_vaccinator)^(vac_contacts_per_visit * 2 * 2)
+  )
 
-  inf_risk2 <- 1 - (1 - inf_risk1)^2 # cum. risk for two visits
-  inf_risk3 <- 1 - (1 - inf_risk1)^3 # cum. risk for three visits
+  # for 3 vaccine clinic visits
+  
+  hh_inf_risk3 <-  1 - (
+    (1 - prev_community * p_transmit_community)^(community_contacts_per_visit * 2 * 3) *
+      (1 - prev_vaccinator * p_transmit_vaccinator)^(vac_contacts_per_visit * 2 * 3)
+  )
   
   # Infection Fatality Risk from imperial work - Verity et al
   # ifr(age0-9)=0.0016%, ifr(age10-19)=0.007%, ifr(age20-29)=0.031%, ifr(age30-39)=0.084%
@@ -203,12 +219,12 @@ estimate_covid_deaths <- function (vaccine_impact,
   ifr_child <- 0.000016 # assume ifr for age 0-9
   ifr_mother <- 0.00084 # assume ifr for age 30-39 
   
-  # fatality risk assume if either mother or child become infected then both become infected
+  # fatality risk currently assuming both mother and child become infected
   # ***need to think about other household contacts***
   
-  fr1 <- 2 * inf_risk1 * (ifr_child + ifr_mother)
-  fr2 <- 2 * inf_risk2 * (ifr_child + ifr_mother)
-  fr3 <- 2 * inf_risk3 * (ifr_child + ifr_mother)
+  fr1 <- hh_inf_risk1 * (ifr_child + ifr_mother)
+  fr2 <- hh_inf_risk2 * (ifr_child + ifr_mother)
+  fr3 <- hh_inf_risk3 * (ifr_child + ifr_mother)
   
   # add a column "covid_deaths" to "vaccine_covid_impact" table 
   # for potential deaths due to covid-19 by continuing vaccination programmes
