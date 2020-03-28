@@ -384,10 +384,17 @@ setwd ("../")
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
 # suspension_period_strings <- c ("3 months", "6 months", "12 months") 
+<<<<<<< HEAD
 
 suspension_periods        <- c ( 6/12)  # unit in year
 suspension_period_strings <- c ("6 months") 
 
+=======
+
+suspension_periods        <- c ( 6/12)  # unit in year
+suspension_period_strings <- c ("6 months") 
+
+>>>>>>> a1e9997994b3477fd761a4b8c1bbbf2e4a99ed3d
 for (period in 1:length (suspension_periods)) {
   
   # set suspension period
