@@ -146,7 +146,6 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
   vaccine_impact [, c("country_name", "gavi73", "who_region") := NULL]
   
   # ----------------------------------------------------------------------------
-  
   # 9 countries with no vaccine impact data from 98 vimc countries
   # Botswana, Algeria, Gabon, Equatorial Guinea, Libya
   # Mauritius, Namibia, Seychelles, South Africa
@@ -154,13 +153,15 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
   # Congo (COG) -- no vaccine impact data for menA
   # Sao Tome and Principe -- no vaccine impact data for YFV
   #
-  # for couuntries wth no vaccine impact values, set them to the mean 
+  # for countries wth no vaccine impact values, set them to the mean 
   # vaccine impact in other African countries for corresponding vaccines
   
-  # TO BE UPDATED
-
-  
+  for (vaccine  in unique (vaccine_impact [, Vaccine]) ) {
+    vaccine_impact [is.na(mid) & Vaccine == vaccine, 
+                    mid := mean (vaccine_impact [!is.na (mid) & Vaccine == vaccine, mid] ) ]
+  }
   # ----------------------------------------------------------------------------
+ 
   # estimate deaths averted by each vaccine in each country
   vaccine_impact [, vac_deaths_averted := (vac_population * mid / 1000)]
   
