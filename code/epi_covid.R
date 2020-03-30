@@ -188,7 +188,7 @@ add_hh_size_data <- function (vaccine_impact) {
   
   #select household data for most recent year from DHS or IPUMS
   data.household_size <- data.household_size %>%
-    dplyr::filter_at(vars(`Data source category`),all_vars(. %in% c("DHS","IPUMS"))) %>%
+    dplyr::filter_at(vars(`Data source category`), all_vars(. %in% c("DHS","IPUMS"))) %>%
     dplyr::group_by(iso3_code) %>%
     dplyr::top_n(1,`Reference date (dd/mm/yyyy)`) %>%
     dplyr::mutate_at(vars(6,18,25,30),as.numeric) %>%
@@ -228,16 +228,16 @@ estimate_covid_deaths <- function (vaccine_impact,
   
   # infection risk from contacts due to vaccination visits
   
-  baseline_pop_infected = 0.5 #prop. of the pop. who become infected without vaccination visits
+  baseline_pop_infected = 0.5  # prop. of the pop. who become infected without vaccination visits
   
-  prev_community  <- 0.02 # prev. community infectives based on 50% pop. infected over 6 months
-  prev_vaccinator <- 0.04 # prev. vaccinator infectives assuming all infected over 6 months
+  prev_community  <- 0.02  # prev. community infectives based on 50% pop. infected over 6 months
+  prev_vaccinator <- 0.04  # prev. vaccinator infectives assuming all infected over 6 months
   
-  p_transmit_community <- 0.1 # prob. that a community contact transmits
-  p_transmit_vaccinator <- 0.05 # assume halved due to better infection control
+  p_transmit_community  <- 0.1   # prob. that a community contact transmits
+  p_transmit_vaccinator <- 0.05  # assume halved due to better infection control
   
-  vac_contacts_per_visit <- 1       # number vaccinators contacts due to vaccine clinic visit
-  community_contacts_per_visit <- 2 # number extra community contacts due to vaccine clinic visit
+  vac_contacts_per_visit       <- 1  # number vaccinators contacts due to vaccine clinic visit
+  community_contacts_per_visit <- 2  # number extra community contacts due to vaccine clinic visit
   
   # risk of household infection for one clinic visit - note additional factor of 2 because both
   # child and caregiver could become infected
@@ -278,9 +278,9 @@ estimate_covid_deaths <- function (vaccine_impact,
   
   # assume ifr for household members as follows
   
-  ifr_child <- 0.000016 # assume ifr for age 0-9
-  ifr_parents <- 0.00031 # assume ifr for age 20-29 
-  ifr_grandparents <- 0.019 # assume ifr for age 60-69
+  ifr_child        <- 0.000016  # assume ifr for age 0-9
+  ifr_parents      <- 0.00031   # assume ifr for age 20-29 
+  ifr_grandparents <- 0.019     # assume ifr for age 60-69
   
   # add a column for estimated covid-19 deaths due to continuing vaccination programmes
   # if infection is imported into household then assume the following become infected:
@@ -298,6 +298,7 @@ estimate_covid_deaths <- function (vaccine_impact,
         (2 * ifr_parents) +
         (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * ifr_grandparents)  
       )]
+  
   # antigens with 2 contacts
   vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"), 
     covid_deaths := vac_population * suspension_period * hh_inf_risk2 *
@@ -305,7 +306,8 @@ estimate_covid_deaths <- function (vaccine_impact,
         (under_20_in_hh_at_least_one_under_20 * ifr_child) +
         (2 * ifr_parents) +
         (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * ifr_grandparents)  
-      )]                
+      )]       
+  
   # antigens with 1 contacts
   vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"), 
     covid_deaths := vac_population * suspension_period * hh_inf_risk1 *
@@ -319,7 +321,6 @@ estimate_covid_deaths <- function (vaccine_impact,
   
 } # end of function -- estimate_covid_deaths
 # ------------------------------------------------------------------------------
-
 
 
 # ------------------------------------------------------------------------------
@@ -468,7 +469,6 @@ for (period in 1:length (suspension_periods)) {
     # add UN household size data from DHS / IPUMS
     vaccine_impact <- add_hh_size_data (vaccine_impact)
     
-
     # estimate potential deaths due to covid-19 by continuing vaccination programmes
     vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact, 
                                                    suspension_period)
