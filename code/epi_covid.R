@@ -304,7 +304,7 @@ estimate_covid_deaths <- function (vaccine_impact,
   vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3"), 
     covid_deaths := vac_population * suspension_period * hh_inf_risk3 *
       ( 
-        (under_20_in_hh_at_least_one_under_20 * ifr_child) +
+        (((under_20_in_hh_at_least_one_under_20 - 1)/2 + 1) * ifr_child) +
         (2 * ifr_parents) +
         (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * ifr_grandparents)  
       )]
@@ -313,7 +313,7 @@ estimate_covid_deaths <- function (vaccine_impact,
   vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"), 
     covid_deaths := vac_population * suspension_period * hh_inf_risk2 *
       ( 
-        (under_20_in_hh_at_least_one_under_20 * ifr_child) +
+        (((under_20_in_hh_at_least_one_under_20 - 1)/2 + 1) * ifr_child) +
         (2 * ifr_parents) +
         (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * ifr_grandparents)  
       )]       
@@ -322,7 +322,7 @@ estimate_covid_deaths <- function (vaccine_impact,
   vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"), 
     covid_deaths := vac_population * suspension_period * hh_inf_risk1 *
       ( 
-        (under_20_in_hh_at_least_one_under_20 * ifr_child) +
+        (((under_20_in_hh_at_least_one_under_20 - 1)/2 + 1) * ifr_child) +
         (2 * ifr_parents) +
         (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * ifr_grandparents)  
       )]
