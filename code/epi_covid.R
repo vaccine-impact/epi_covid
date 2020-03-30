@@ -218,10 +218,6 @@ add_hh_size_data <- function (vaccine_impact) {
     all.x = TRUE
   )
   
-  # [1] "iso3_code"                            "hh_size" 4.95                            
-  # [3] "under_20_in_hh_at_least_one_under_20" 3.34 "percent_hh_at_least_one_under_20" 79.73    
-  # [5] "percent_hh_under_20_and_over_60 17.98
-  # 
   # ----------------------------------------------------------------------------
   # for countries with no household size data:
   # "CPV" "DJI" "DZA" "ERI" "GNB" "GNQ" "LBY" "MRT" "MUS" "SOM" "SYC" "TUN"
