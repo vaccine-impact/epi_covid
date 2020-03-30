@@ -145,6 +145,16 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
   # drop redundant columns
   vaccine_impact [, c("country_name", "gavi73", "who_region") := NULL]
   
+  # adjusted impact of MCV1 and MCV2 based on measles impact
+  for (country_code in unique (vaccine_impact [, ISO_code]) ) {
+    
+    vaccine_impact [ISO_code == country_code & Vaccine == "MCV2", 
+                    mid := (5/98) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", mid] ]
+    
+    vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", 
+                    mid := (93/98) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", mid] ]
+  }
+  
   # ----------------------------------------------------------------------------
   # 9 countries with no vaccine impact data from 98 vimc countries
   # Botswana, Algeria, Gabon, Equatorial Guinea, Libya
@@ -330,16 +340,57 @@ benefit_risk_ratio <- function (vaccine_covid_impact,
   
   benefit_risk <- vaccine_covid_impact
   
+  # compute benefit-risk ratio across combined vaccines in same visits
+  
+  # clinical visits for vaccination among children aged 0-11 months and their adult carers = 4 
+  #   (3 visits for DTP3-HepB-Hib + PCV3 + RotaC) + 
+  #   (1 visit for MCV1 + RCV1 + MenA + YF)
+  # clinical visits for vaccination among children aged 12-23 months and their adult carers = 1 
+  #   (1 visit for MCV2) -- single vaccine estimates already computed
+  
+  # compute benefit-risk ratio for vaccines in the same visit
+  benefit_risk_3visits_age0 <- benefit_risk [Vaccine %in% c("HepB3", "Hib3", "PCV3")]
+  benefit_risk_1visits_age0 <- benefit_risk [Vaccine %in% c("MCV1", "RCV1", "MenA", "YFV")]
+  
+  # set vaccine name list
+  benefit_risk_3visits_age0 [, Vaccine := "HepB3, Hib3, PCV3"]
+  benefit_risk_1visits_age0 [, Vaccine := "MCV1, RCV1, MenA, YFV"]
+  
+  # add deaths averted by vaccination in the vaccine list
+  benefit_risk_3visits_age0 [, vac_deaths_averted := sum (vac_deaths_averted), by = "ISO_code"]
+  benefit_risk_1visits_age0 [, vac_deaths_averted := sum (vac_deaths_averted), by = "ISO_code"]
+  
+  # set covid deaths to the maximum estimate in the vaccine list
+  benefit_risk_3visits_age0 [, covid_deaths := max (covid_deaths), by = "ISO_code"]
+  benefit_risk_1visits_age0 [, covid_deaths := max (covid_deaths), by = "ISO_code"]
+  
+  # extract 1 row per country for combined vaccine impact estimates
+  benefit_risk_3visits_age0 [, min_val := mid < max (mid), by = "ISO_code"]
+  benefit_risk_3visits_age0 [min_val == FALSE]
+  benefit_risk_3visits_age0 [, min_val := NULL]
+  
+  benefit_risk_1visits_age0 [, min_val := mid < max (mid), by = "ISO_code"]
+  benefit_risk_1visits_age0 [min_val == FALSE]
+  benefit_risk_1visits_age0 [, min_val := NULL]
+  
+  # add combined vaccine impact estimates to benefit risk table
+  benefit_risk <- 
+    rbindlist (list (benefit_risk, 
+                     benefit_risk_3visits_age0, 
+                     benefit_risk_1visits_age0), 
+               use.names = TRUE, 
+               fill      = TRUE)
+  
+  # compute benefit-risk ratio across EPI vaccines
+  benefit_risk_EPI <- benefit_risk [Vaccine == "HepB3, Hib3, PCV3" |
+                                      Vaccine == "MCV1, RCV1, MenA, YFV" |
+                                      Vaccine == "MCV2"]
+  
+  
+  
   # estimate benefit ratio
   benefit_risk [, benefit_risk_ratio := 
                   (vac_deaths_averted * suspension_period) / covid_deaths]
-  
-  # TO BE UPDATED
-  # estimate benefit risk ratios at the country level across all vaccines
-  
-  
-  
-  
   
   return (benefit_risk)
   
@@ -386,7 +437,7 @@ benefit_risk_ratio_map <- function (benefit_risk,
   vaccines <- unique (benefit_risk$Vaccine)
   
   # drop MCV2 for maps
-  vaccines <- vaccines [vaccines != "MCV2"]
+  # vaccines <- vaccines [vaccines != "MCV2"]
   
   theme_set (theme_bw())
   
