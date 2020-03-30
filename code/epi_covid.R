@@ -10,7 +10,7 @@ library (ggplot2)
 library (rnaturalearth)
 library (rnaturalearthdata)
 library (tictoc)
-library(dplyr)
+library (tidyverse)
 
 # remove all objects from workspace
 rm (list = ls ())
@@ -217,7 +217,33 @@ add_hh_size_data <- function (vaccine_impact) {
     by.y = c ("iso3_code"), 
     all.x = TRUE
   )
-              
+  
+  # [1] "iso3_code"                            "hh_size" 4.95                            
+  # [3] "under_20_in_hh_at_least_one_under_20" 3.34 "percent_hh_at_least_one_under_20" 79.73    
+  # [5] "percent_hh_under_20_and_over_60 17.98
+  # 
+  # ----------------------------------------------------------------------------
+  # for countries with no household size data:
+  # "CPV" "DJI" "DZA" "ERI" "GNB" "GNQ" "LBY" "MRT" "MUS" "SOM" "SYC" "TUN"
+  # set them to the mean value of other African countries
+
+  household <- vaccine_impact [!is.na (hh_size), 
+                               lapply (.SD, mean),
+                               .SDcols = c("hh_size", 
+                                           "under_20_in_hh_at_least_one_under_20",
+                                           "percent_hh_at_least_one_under_20",
+                                           "percent_hh_under_20_and_over_60"),
+                               by = "ISO_code"]
+  
+  vaccine_impact [is.na (hh_size), 
+                  ':=' (hh_size                              = mean (household [, hh_size]), 
+                        under_20_in_hh_at_least_one_under_20 = mean (household [, under_20_in_hh_at_least_one_under_20]), 
+                        percent_hh_at_least_one_under_20     = mean (household [, percent_hh_at_least_one_under_20]), 
+                        percent_hh_under_20_and_over_60      = mean (household [, percent_hh_under_20_and_over_60])
+                  )
+                  ]
+  # ----------------------------------------------------------------------------
+  
   return (vaccine_impact)
 
 } # end of function -- add_hh_size_data
