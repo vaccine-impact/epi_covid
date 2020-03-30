@@ -349,11 +349,11 @@ benefit_risk_ratio <- function (vaccine_covid_impact,
   #   (1 visit for MCV2) -- single vaccine estimates already computed
   
   # compute benefit-risk ratio for vaccines in the same visit
-  benefit_risk_3visits_age0 <- benefit_risk [Vaccine %in% c("HepB3", "Hib3", "PCV3")]
+  benefit_risk_3visits_age0 <- benefit_risk [Vaccine %in% c("HepB3", "Hib3", "PCV3", "RotaC")]
   benefit_risk_1visits_age0 <- benefit_risk [Vaccine %in% c("MCV1", "RCV1", "MenA", "YFV")]
   
   # set vaccine name list
-  benefit_risk_3visits_age0 [, Vaccine := "HepB3, Hib3, PCV3"]
+  benefit_risk_3visits_age0 [, Vaccine := "HepB3, Hib3, PCV3, RotaC"]
   benefit_risk_1visits_age0 [, Vaccine := "MCV1, RCV1, MenA, YFV"]
   
   # add deaths averted by vaccination in the vaccine list
@@ -385,8 +385,6 @@ benefit_risk_ratio <- function (vaccine_covid_impact,
   benefit_risk_EPI <- benefit_risk [Vaccine == "HepB3, Hib3, PCV3" |
                                       Vaccine == "MCV1, RCV1, MenA, YFV" |
                                       Vaccine == "MCV2"]
-  
-  
   
   # estimate benefit ratio
   benefit_risk [, benefit_risk_ratio := 
