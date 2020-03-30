@@ -149,10 +149,10 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
   for (country_code in unique (vaccine_impact [, ISO_code]) ) {
     
     vaccine_impact [ISO_code == country_code & Vaccine == "MCV2", 
-                    mid := (5/98) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", mid] ]
+                    mid := (4/97) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", mid] ]
     
     vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", 
-                    mid := (93/98) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", mid] ]
+                    mid := (93/97) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", mid] ]
   }
   
   # ----------------------------------------------------------------------------
@@ -188,6 +188,7 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
 } # end of function -- deaths_averted_vaccination
 # ------------------------------------------------------------------------------
 
+
 # ------------------------------------------------------------------------------
 # Add data on household size
 # ------------------------------------------------------------------------------
@@ -217,7 +218,7 @@ add_hh_size_data <- function (vaccine_impact) {
     all.x = TRUE
   )
               
-  return(vaccine_impact)
+  return (vaccine_impact)
 
 } # end of function -- add_hh_size_data
 # ------------------------------------------------------------------------------
