@@ -405,21 +405,19 @@ benefit_risk_ratio <- function (vaccine_covid_impact,
   benefit_risk_1visits_age0 [, Vaccine := "MCV1, RCV1, MenA, YFV"]
   
   # add deaths averted by vaccination in the vaccine list
-  benefit_risk_3visits_age0 [, vac_deaths_averted := sum (vac_deaths_averted), by = "ISO_code"]
-  benefit_risk_1visits_age0 [, vac_deaths_averted := sum (vac_deaths_averted), by = "ISO_code"]
+  benefit_risk_3visits_age0 [, vac_deaths_averted := sum (vac_deaths_averted, na.rm = T), by = "ISO_code"]
+  benefit_risk_1visits_age0 [, vac_deaths_averted := sum (vac_deaths_averted, na.rm = T), by = "ISO_code"]
   
   # set covid deaths to the maximum estimate in the vaccine list
   benefit_risk_3visits_age0 [, covid_deaths := max (covid_deaths), by = "ISO_code"]
   benefit_risk_1visits_age0 [, covid_deaths := max (covid_deaths), by = "ISO_code"]
   
-  # extract 1 row per country for combined vaccine impact estimates
-  benefit_risk_3visits_age0 [, min_val := mid < max (mid), by = "ISO_code"]
-  benefit_risk_3visits_age0 <- benefit_risk_3visits_age0 [min_val == FALSE]
-  benefit_risk_3visits_age0 [, min_val := NULL]
+  # sample 1 row per country for combined vaccine impact estimates
+  benefit_risk_3visits_age0 <- benefit_risk_3visits_age0 %>% group_by (ISO_code)
+  benefit_risk_3visits_age0 <- sample_n (benefit_risk_3visits_age0, 1)
   
-  benefit_risk_1visits_age0 [, min_val := mid < max (mid), by = "ISO_code"]
-  benefit_risk_1visits_age0 <- benefit_risk_1visits_age0 [min_val == FALSE]
-  benefit_risk_1visits_age0 [, min_val := NULL]
+  benefit_risk_1visits_age0 <- benefit_risk_1visits_age0 %>% group_by (ISO_code)
+  benefit_risk_1visits_age0 <- sample_n (benefit_risk_1visits_age0, 1)
   
   # add combined vaccine impact estimates to benefit risk table
   benefit_risk <- 
@@ -547,7 +545,7 @@ for (period in 1:length (suspension_periods)) {
   
   # age group for vaccine impact -- "all" or "under5" age groups
   age_groups <- c("under5", "all")
-  age_groups <- c("under5")
+  # age_groups <- c("under5")
   
   for (age_group in age_groups) {
     
