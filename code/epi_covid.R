@@ -261,42 +261,53 @@ estimate_covid_deaths <- function (vaccine_impact,
   
   # infection risk from contacts due to vaccination visits
   
-  baseline_pop_infected = 0.5  # prop. of the pop. who become infected without vaccination visits
+  # using point estiamtes for deterministic values
   
-  prev_community  <- 0.02  # prev. community infectives based on 50% pop. infected over 6 months
-  prev_vaccinator <- 0.04  # prev. vaccinator infectives assuming all infected over 6 months
+  big_t <- suspension_period * 12 * 30   # duration of period at risk of SARS-CoV-2 ** in days **
+  r0 <- 2.5                    # basic reproduction number
+  theta <- 1-(1/r0)            # proportion of pop. infected at big_t assuming no "overshooting"
+  psi <- 7                     # duration of infectiousness
+  n <- 2                       # number of potentially infectious contacts on visit to clinic
+  iota1 <- 2                   # RR vacinator being infected + infectious vs community member
+  iota2 <- 0.5                 # RR of infectious vaccinator transmitting vs community member
+  p0 <- (theta * psi)/big_t    # prevalence of infectiousness amongst community members on given day
+  pv <- p0 * iota1             # prevalence of infectiousness amongst vaccinators on given day
+  big_n <- 5                   # av. no. of community member transmission relevant contacts per day
+  t0 <- r0/(big_n * psi)       # prob. transmission given potentially infectious community contact
+  tv <- t0/iota2               # prob. transmission given potentially infectious vaccinator contact
   
-  p_transmit_community  <- 0.1   # prob. that a community contact transmits
-  p_transmit_vaccinator <- 0.05  # assume halved due to better infection control
+  pe_v1_mid <- (1-((1-pv*tv)^(2*1)*(1-p0*t0)^(2*1*n)))*(1-theta) # excess household risk from 1 visit
+  pe_v2_mid <- (1-((1-pv*tv)^(2*2)*(1-p0*t0)^(2*2*n)))*(1-theta) # excess household risk from 2 visits
+  pe_v3_mid <- (1-((1-pv*tv)^(2*3)*(1-p0*t0)^(2*3*n)))*(1-theta) # excess household risk from 3 visits
   
-  vac_contacts_per_visit       <- 1  # number vaccinators contacts due to vaccine clinic visit
-  community_contacts_per_visit <- 2  # number extra community contacts due to vaccine clinic visit
+  # using PSA
   
-  # risk of household infection for one clinic visit - note additional factor of 2 because both
-  # child and caregiver could become infected
+  big_t <- runif(10000,big_t-30,big_t+30) # uniform on -/+ 30 days from period that is passed in 
+  r0 <- rgamma(10000, shape = 25, scale = (2.5/25))                   
+  theta <- 1-(1/r0)            
+  psi <- rgamma(10000, shape = 14, scale = (7/14))                    
+  n <- runif(10000,1,10)                       
+  iota1 <- runif(10000,1,4)                   
+  iota2 <- runif(10000,0.25,1)               
+  p0 <- (theta * psi)/big_t    
+  pv <- p0 * iota1             
+  big_n <- runif(10000,2,10)                  
+  t0 <- r0/(big_n * psi)       
+  tv <- t0/iota2               
   
-  # for 1 vaccine clinic visit
-  hh_inf_risk1 <-  1 - (
-    (1 - prev_community * p_transmit_community)^(community_contacts_per_visit * 2) *
-      (1 - prev_vaccinator * p_transmit_vaccinator)^(vac_contacts_per_visit * 2)
-  )
+  pe_v1 <- (1-((1-pv*tv)^(2*1)*(1-p0*t0)^(2*1*n)))*(1-theta) # excess household risk from 1 visit
+  pe_v2 <- (1-((1-pv*tv)^(2*2)*(1-p0*t0)^(2*2*n)))*(1-theta) # excess household risk from 2 visits
+  pe_v3 <- (1-((1-pv*tv)^(2*3)*(1-p0*t0)^(2*3*n)))*(1-theta) # excess household risk from 3 visits
   
-  # for 2 vaccine clinic visits
-  hh_inf_risk2 <-  1 - (
-    (1 - prev_community * p_transmit_community)^(community_contacts_per_visit * 2 * 2) *
-      (1 - prev_vaccinator * p_transmit_vaccinator)^(vac_contacts_per_visit * 2 * 2)
-  )
+  # upper bound
+  pe_v1_high <- quantile(pe_v1,0.975)
+  pe_v2_high <- quantile(pe_v2,0.975) 
+  pe_v3_high <- quantile(pe_v3,0.975) 
   
-  # for 3 vaccine clinic visits
-  hh_inf_risk3 <-  1 - (
-    (1 - prev_community * p_transmit_community)^(community_contacts_per_visit * 2 * 3) *
-      (1 - prev_vaccinator * p_transmit_vaccinator)^(vac_contacts_per_visit * 2 * 3)
-  )
-  
-  # risk above baseline due to vaccine visits
-  hh_inf_risk1 <- (1 - baseline_pop_infected) * hh_inf_risk1
-  hh_inf_risk2 <- (1 - baseline_pop_infected) * hh_inf_risk2
-  hh_inf_risk3 <- (1 - baseline_pop_infected) * hh_inf_risk3
+  # lower bound
+  pe_v1_low <- quantile(pe_v1,0.025) 
+  pe_v2_low <- quantile(pe_v2,0.025) 
+  pe_v3_low <- quantile(pe_v3,0.025)
   
   # age-specific infection fatality risk from Verity et al.
   # ifr(age 0-9) = 0.0016% 
@@ -323,57 +334,212 @@ estimate_covid_deaths <- function (vaccine_impact,
   # (3) 2 adults in every household (caregiver who attends clinic plus one other)
   # (4) 2 adults over 60 adjusted for the proportion of households with members <20 years that
   # also have a household member >60 years
-
+  
   vaccine_covid_impact [,child_covid_deaths := 0]
+  vaccine_covid_impact [,child_covid_deaths_low := 0]
+  vaccine_covid_impact [,child_covid_deaths_high := 0]
+  
   vaccine_covid_impact [,sibling_covid_deaths := 0]
+  vaccine_covid_impact [,sibling_covid_deaths_low := 0]
+  vaccine_covid_impact [,sibling_covid_deaths_high := 0]
+  
   vaccine_covid_impact [,parent_covid_deaths := 0]
+  vaccine_covid_impact [,parent_covid_deaths_low := 0]
+  vaccine_covid_impact [,parent_covid_deaths_high := 0]
+  
   vaccine_covid_impact [,grandparent_covid_deaths := 0]
+  vaccine_covid_impact [,grandparent_covid_deaths_low := 0]
+  vaccine_covid_impact [,grandparent_covid_deaths_high := 0]
+  
+  vaccine_covid_impact [,covid_deaths := 0]
+  vaccine_covid_impact [,covid_deaths_low := 0]
+  vaccine_covid_impact [,covid_deaths_high := 0]
   
   
-  # antigens with 3 contacts
+  # antigens with 3 contacts 
+  
+  # mid
   vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3"),
-                        child_covid_deaths := vac_population * suspension_period * hh_inf_risk3 * ifr_child]
+                        child_covid_deaths := 
+                          vac_population * suspension_period * pe_v3_mid * ifr_child]
   vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3"),
-                        sibling_covid_deaths := vac_population * suspension_period * hh_inf_risk3 *
+                        sibling_covid_deaths := 
+                          vac_population * suspension_period * pe_v3_mid *
                           (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child)]
   vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3"),
-                        parent_covid_deaths := vac_population * suspension_period * hh_inf_risk3 * 2 * ifr_parents]
+                        parent_covid_deaths := 
+                          vac_population * suspension_period * pe_v3_mid * 2 * ifr_parents]
   vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3"),
-                        grandparent_covid_deaths := vac_population * suspension_period * hh_inf_risk3 * 
-                          (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * ifr_grandparents)]
+                        grandparent_covid_deaths := 
+                          vac_population * suspension_period * pe_v3_mid * 
+                          (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * 
+                             ifr_grandparents)]
   vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3"),
-                        covid_deaths := child_covid_deaths + sibling_covid_deaths + parent_covid_deaths +
-                          grandparent_covid_deaths]
+                        covid_deaths := child_covid_deaths + sibling_covid_deaths + 
+                          parent_covid_deaths + grandparent_covid_deaths]
+  
+  # low
+  vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3"),
+                        child_covid_deaths_low := 
+                          vac_population * suspension_period * pe_v3_low * ifr_child]
+  vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3"),
+                        sibling_covid_deaths_low := 
+                          vac_population * suspension_period * pe_v3_low *
+                          (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child)]
+  vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3"),
+                        parent_covid_deaths_low := 
+                          vac_population * suspension_period * pe_v3_low * 2 * ifr_parents]
+  vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3"),
+                        grandparent_covid_deaths_low := 
+                          vac_population * suspension_period * pe_v3_low * 
+                          (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * 
+                             ifr_grandparents)]
+  vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3"),
+                        covid_deaths_low := child_covid_deaths_low + sibling_covid_deaths_low + 
+                          parent_covid_deaths_low + grandparent_covid_deaths_low]
+  
+  # high
+  vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3"),
+                        child_covid_deaths_high := 
+                          vac_population * suspension_period * pe_v3_high * ifr_child]
+  vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3"),
+                        sibling_covid_deaths_high := 
+                          vac_population * suspension_period * pe_v3_high *
+                          (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child)]
+  vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3"),
+                        parent_covid_deaths_high := 
+                          vac_population * suspension_period * pe_v3_high * 2 * ifr_parents]
+  vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3"),
+                        grandparent_covid_deaths_high := 
+                          vac_population * suspension_period * pe_v3_high * 
+                          (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * 
+                             ifr_grandparents)]
+  vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3"),
+                        covid_deaths_high := child_covid_deaths_high + sibling_covid_deaths_high + 
+                          parent_covid_deaths_high + grandparent_covid_deaths_high]
   
   # antigens with 2 contacts
-  vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"), 
-                        child_covid_deaths := vac_population * suspension_period * hh_inf_risk2 * ifr_child]
+  # mid
   vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"),
-                        sibling_covid_deaths := vac_population * suspension_period * hh_inf_risk2 *
+                        child_covid_deaths := 
+                          vac_population * suspension_period * pe_v2_mid * ifr_child]
+  vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"),
+                        sibling_covid_deaths := 
+                          vac_population * suspension_period * pe_v2_mid *
                           (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child)]
   vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"),
-                        parent_covid_deaths := vac_population * suspension_period * hh_inf_risk2 * 2 * ifr_parents]
+                        parent_covid_deaths := 
+                          vac_population * suspension_period * pe_v2_mid * 2 * ifr_parents]
   vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"),
-                        grandparent_covid_deaths := vac_population * suspension_period * hh_inf_risk2 * 
-                          (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * ifr_grandparents)]
+                        grandparent_covid_deaths := 
+                          vac_population * suspension_period * pe_v2_mid * 
+                          (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * 
+                             ifr_grandparents)]
   vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"),
-                        covid_deaths := child_covid_deaths + sibling_covid_deaths + parent_covid_deaths +
-                          grandparent_covid_deaths]   
+                        covid_deaths := child_covid_deaths + sibling_covid_deaths + 
+                          parent_covid_deaths + grandparent_covid_deaths]
+  
+  # low
+  vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"),
+                        child_covid_deaths_low := 
+                          vac_population * suspension_period * pe_v2_low * ifr_child]
+  vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"),
+                        sibling_covid_deaths_low := 
+                          vac_population * suspension_period * pe_v2_low *
+                          (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child)]
+  vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"),
+                        parent_covid_deaths_low := 
+                          vac_population * suspension_period * pe_v2_low * 2 * ifr_parents]
+  vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"),
+                        grandparent_covid_deaths_low := 
+                          vac_population * suspension_period * pe_v2_low * 
+                          (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * 
+                             ifr_grandparents)]
+  vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"),
+                        covid_deaths_low := child_covid_deaths_low + sibling_covid_deaths_low + 
+                          parent_covid_deaths_low + grandparent_covid_deaths_low]
+  
+  # high
+  vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"),
+                        child_covid_deaths_high := 
+                          vac_population * suspension_period * pe_v2_high * ifr_child]
+  vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"),
+                        sibling_covid_deaths_high := 
+                          vac_population * suspension_period * pe_v2_high *
+                          (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child)]
+  vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"),
+                        parent_covid_deaths_high := 
+                          vac_population * suspension_period * pe_v2_high * 2 * ifr_parents]
+  vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"),
+                        grandparent_covid_deaths_high := 
+                          vac_population * suspension_period * pe_v2_high * 
+                          (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * 
+                             ifr_grandparents)]
+  vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem"),
+                        covid_deaths_high := child_covid_deaths_high + sibling_covid_deaths_high + 
+                          parent_covid_deaths_high + grandparent_covid_deaths_high]
   
   # antigens with 1 contacts
-  vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"), 
-                        child_covid_deaths := vac_population * suspension_period * hh_inf_risk1 * ifr_child]
+  # mid
   vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"),
-                        sibling_covid_deaths := vac_population * suspension_period * hh_inf_risk1 *
+                        child_covid_deaths := 
+                          vac_population * suspension_period * pe_v1_mid * ifr_child]
+  vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"),
+                        sibling_covid_deaths := 
+                          vac_population * suspension_period * pe_v1_mid *
                           (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child)]
   vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"),
-                        parent_covid_deaths := vac_population * suspension_period * hh_inf_risk1 * 1 * ifr_parents]
+                        parent_covid_deaths := 
+                          vac_population * suspension_period * pe_v1_mid * 2 * ifr_parents]
   vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"),
-                        grandparent_covid_deaths := vac_population * suspension_period * hh_inf_risk1 * 
-                          (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * ifr_grandparents)]
+                        grandparent_covid_deaths := 
+                          vac_population * suspension_period * pe_v1_mid * 
+                          (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * 
+                             ifr_grandparents)]
   vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"),
-                        covid_deaths := child_covid_deaths + sibling_covid_deaths + parent_covid_deaths +
-                          grandparent_covid_deaths] 
+                        covid_deaths := child_covid_deaths + sibling_covid_deaths + 
+                          parent_covid_deaths + grandparent_covid_deaths]
+  
+  # low
+  vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"),
+                        child_covid_deaths_low := 
+                          vac_population * suspension_period * pe_v1_low * ifr_child]
+  vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"),
+                        sibling_covid_deaths_low := 
+                          vac_population * suspension_period * pe_v1_low *
+                          (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child)]
+  vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"),
+                        parent_covid_deaths_low := 
+                          vac_population * suspension_period * pe_v1_low * 2 * ifr_parents]
+  vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"),
+                        grandparent_covid_deaths_low := 
+                          vac_population * suspension_period * pe_v1_low * 
+                          (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * 
+                             ifr_grandparents)]
+  vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"),
+                        covid_deaths_low := child_covid_deaths_low + sibling_covid_deaths_low + 
+                          parent_covid_deaths_low + grandparent_covid_deaths_low]
+  
+  # high
+  vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"),
+                        child_covid_deaths_high := 
+                          vac_population * suspension_period * pe_v1_high * ifr_child]
+  vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"),
+                        sibling_covid_deaths_high := 
+                          vac_population * suspension_period * pe_v1_high *
+                          (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child)]
+  vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"),
+                        parent_covid_deaths_high := 
+                          vac_population * suspension_period * pe_v1_high * 2 * ifr_parents]
+  vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"),
+                        grandparent_covid_deaths_high := 
+                          vac_population * suspension_period * pe_v1_high * 
+                          (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * 
+                             ifr_grandparents)]
+  vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA"),
+                        covid_deaths_high := child_covid_deaths_high + sibling_covid_deaths_high + 
+                          parent_covid_deaths_high + grandparent_covid_deaths_high]
+  
   
   return (vaccine_covid_impact)
   
