@@ -396,6 +396,7 @@ benefit_risk_ratio <- function (vaccine_covid_impact,
   # clinical visits for vaccination among children aged 12-23 months and their adult carers = 1 
   #   (1 visit for MCV2) -- single vaccine estimates already computed
   
+  # ----------------------------------------------------------------------------
   # compute benefit-risk ratio for vaccines in the same visit
   benefit_risk_3visits_age0 <- benefit_risk [Vaccine %in% c("HepB3", "Hib3", "PCV3", "RotaC")]
   benefit_risk_1visits_age0 <- benefit_risk [Vaccine %in% c("MCV1", "RCV1", "MenA", "YFV")]
@@ -427,10 +428,33 @@ benefit_risk_ratio <- function (vaccine_covid_impact,
                use.names = TRUE, 
                fill      = TRUE)
   
+  # ----------------------------------------------------------------------------
   # compute benefit-risk ratio across EPI vaccines
-  benefit_risk_EPI <- benefit_risk [Vaccine == "HepB3, Hib3, PCV3" |
-                                      Vaccine == "MCV1, RCV1, MenA, YFV" |
-                                      Vaccine == "MCV2"]
+  benefit_risk_EPI <- benefit_risk [Vaccine %in% c("HepB3, Hib3, PCV3, RotaC", 
+                                                   "MCV1, RCV1, MenA, YFV",
+                                                   "MCV2")]
+  
+  # set vaccine name list
+  benefit_risk_EPI [, Vaccine := "HepB3, Hib3, PCV3, RotaC, MCV1, RCV1, MenA, YFV, MCV2"]
+  
+  # add deaths averted by vaccination in the vaccine list
+  benefit_risk_EPI [, vac_deaths_averted := sum (vac_deaths_averted, na.rm = T), by = "ISO_code"]
+
+  # add covid deaths in the vaccine list
+  benefit_risk_EPI [, covid_deaths := sum (covid_deaths, na.rm = T), by = "ISO_code"]
+
+  # sample 1 row per country for combined vaccine impact estimates
+  benefit_risk_EPI <- benefit_risk_EPI %>% group_by (ISO_code)
+  benefit_risk_EPI <- sample_n (benefit_risk_EPI, 1)
+  
+  # add combined vaccine impact estimates to benefit risk table
+  benefit_risk <- 
+    rbindlist (list (benefit_risk, 
+                     benefit_risk_EPI), 
+               use.names = TRUE, 
+               fill      = TRUE)
+  
+  # ----------------------------------------------------------------------------
   
   # estimate benefit ratio
   benefit_risk [, benefit_risk_ratio := 
@@ -505,7 +529,7 @@ benefit_risk_ratio_map <- function (benefit_risk,
       theme (axis.text.y      = element_blank(), axis.ticks = element_blank()) + 
       theme (panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
       theme (plot.title       = element_text(size = 12)) +
-      theme (plot.subtitle    = element_text(size = 10)) +
+      theme (plot.subtitle    = element_text(size = 8)) +
       theme (legend.title     = element_text(size = 10)) 
     
     print (p)
