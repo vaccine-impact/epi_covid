@@ -570,7 +570,7 @@ for (period in 1:length (suspension_periods)) {
   
   # age group for vaccine impact -- "all" or "under5" age groups
   age_groups <- c("under5", "all")
-  age_groups <- c("under5")
+  # age_groups <- c("under5")
   
   for (age_group in age_groups) {
     
