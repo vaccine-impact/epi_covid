@@ -414,11 +414,11 @@ benefit_risk_ratio <- function (vaccine_covid_impact,
   
   # extract 1 row per country for combined vaccine impact estimates
   benefit_risk_3visits_age0 [, min_val := mid < max (mid), by = "ISO_code"]
-  benefit_risk_3visits_age0 [min_val == FALSE]
+  benefit_risk_3visits_age0 <- benefit_risk_3visits_age0 [min_val == FALSE]
   benefit_risk_3visits_age0 [, min_val := NULL]
   
   benefit_risk_1visits_age0 [, min_val := mid < max (mid), by = "ISO_code"]
-  benefit_risk_1visits_age0 [min_val == FALSE]
+  benefit_risk_1visits_age0 <- benefit_risk_1visits_age0 [min_val == FALSE]
   benefit_risk_1visits_age0 [, min_val := NULL]
   
   # add combined vaccine impact estimates to benefit risk table
@@ -482,9 +482,6 @@ benefit_risk_ratio_map <- function (benefit_risk,
   
   vaccines <- unique (benefit_risk$Vaccine)
   
-  # drop MCV2 for maps
-  # vaccines <- vaccines [vaccines != "MCV2"]
-  
   theme_set (theme_bw())
   
   # generate benefit-risk ratio maps for different vaccines
@@ -506,17 +503,17 @@ benefit_risk_ratio_map <- function (benefit_risk,
                                " / EPI suspension period: ", suspension_period_string, 
                                " / vaccine impact: ", vaccine_impact_timeline),  
             fill     = "benefit-risk ratio") + 
-      #theme (legend.title     = "benefit-risk ratio") + 
       theme (axis.text.x      = element_blank(), axis.ticks = element_blank()) + 
       theme (axis.text.y      = element_blank(), axis.ticks = element_blank()) + 
       theme (panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
       theme (plot.title       = element_text(size = 12)) +
-      theme (plot.subtitle    = element_text(size = 11)) +
+      theme (plot.subtitle    = element_text(size = 10)) +
       theme (legend.title     = element_text(size = 10)) 
     
     print (p)
     
-  }
+  } # end -- for (vaccine in vaccines)
+  
   dev.off ()
   
 } # end of function -- benefit_risk_ratio_map
@@ -550,6 +547,7 @@ for (period in 1:length (suspension_periods)) {
   
   # age group for vaccine impact -- "all" or "under5" age groups
   age_groups <- c("under5", "all")
+  age_groups <- c("under5")
   
   for (age_group in age_groups) {
     
@@ -579,9 +577,9 @@ for (period in 1:length (suspension_periods)) {
                             suspension_period_string, 
                             age_group = age_group)
     
-  }
-  
-}
+  } # end -- for (age_group in age_groups)
+
+} # end -- for (period in 1:length (suspension_periods))
 
 # return to source directory
 setwd (source_wd)
