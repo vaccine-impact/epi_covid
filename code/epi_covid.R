@@ -23,7 +23,7 @@ rm (list = ls ())
 # ------------------------------------------------------------------------------
 # Extract vaccine coverage estimates for 2018 from WHO for 54 African countries 
 # ------------------------------------------------------------------------------
-get_vaccine_coverage <- function () {
+get_vaccine_coverage <- function (age_group) {
   
   # Source: WHO vaccine-preventable diseases: monitoring system 2019 global summary
   # Last update: 10 Dec 2019
@@ -45,6 +45,12 @@ get_vaccine_coverage <- function () {
   vaccine_coverage <- vaccine_coverage [Vaccine %in% c("HepB3", "Hib3", "HPVfem", 
                                                        "MCV1", "MCV2", "MenA", "PCV3", 
                                                        "RotaC", "RCV1", "YFV")]
+  # drop HPVfem for under-5 children
+  if (age_group == "under5") {
+    
+    vaccine_coverage <- vaccine_coverage [Vaccine != "HPVfem"]
+  }
+  
   # return vaccine coverage estimates 
   return (vaccine_coverage)
   
@@ -264,17 +270,17 @@ estimate_covid_deaths <- function (vaccine_impact,
   # using point estiamtes for deterministic values
   
   big_t <- suspension_period * 12 * 30   # duration of period at risk of SARS-CoV-2 ** in days **
-  r0 <- 2.5                    # basic reproduction number
-  theta <- 1-(1/r0)            # proportion of pop. infected at big_t assuming no "overshooting"
-  psi <- 7                     # duration of infectiousness
-  n <- 2                       # number of potentially infectious contacts on visit to clinic
-  iota1 <- 2                   # RR vacinator being infected + infectious vs community member
-  iota2 <- 0.5                 # RR of infectious vaccinator transmitting vs community member
-  p0 <- (theta * psi)/big_t    # prevalence of infectiousness amongst community members on given day
-  pv <- p0 * iota1             # prevalence of infectiousness amongst vaccinators on given day
-  big_n <- 5                   # av. no. of community member transmission relevant contacts per day
-  t0 <- r0/(big_n * psi)       # prob. transmission given potentially infectious community contact
-  tv <- t0/iota2               # prob. transmission given potentially infectious vaccinator contact
+  r0    <- 2.5                           # basic reproduction number
+  theta <- 1-(1/r0)                      # proportion of pop. infected at big_t assuming no "overshooting"
+  psi   <- 7                             # duration of infectiousness
+  n     <- 2                             # number of potentially infectious contacts on visit to clinic
+  iota1 <- 2                             # RR vacinator being infected + infectious vs community member
+  iota2 <- 0.5                           # RR of infectious vaccinator transmitting vs community member
+  p0    <- (theta * psi)/big_t           # prevalence of infectiousness amongst community members on given day
+  pv    <- p0 * iota1                    # prevalence of infectiousness amongst vaccinators on given day
+  big_n <- 5                             # av. no. of community member transmission relevant contacts per day
+  t0    <- r0/(big_n * psi)              # prob. transmission given potentially infectious community contact
+  tv    <- t0/iota2                      # prob. transmission given potentially infectious vaccinator contact
   
   pe_v1_mid <- (1-((1-pv*tv)^(2*1)*(1-p0*t0)^(2*1*n)))*(1-theta) # excess household risk from 1 visit
   pe_v2_mid <- (1-((1-pv*tv)^(2*2)*(1-p0*t0)^(2*2*n)))*(1-theta) # excess household risk from 2 visits
@@ -282,18 +288,18 @@ estimate_covid_deaths <- function (vaccine_impact,
   
   # using PSA
   
-  big_t <- runif(10000,big_t-30,big_t+30) # uniform on -/+ 30 days from period that is passed in 
-  r0 <- rgamma(10000, shape = 25, scale = (2.5/25))                   
+  big_t <- runif (10000, big_t-30, big_t+30) # uniform on -/+ 30 days from period that is passed in 
+  r0    <- rgamma (10000, shape = 25, scale = (2.5/25))                   
   theta <- 1-(1/r0)            
-  psi <- rgamma(10000, shape = 14, scale = (7/14))                    
-  n <- runif(10000,1,10)                       
-  iota1 <- runif(10000,1,4)                   
-  iota2 <- runif(10000,0.25,1)               
-  p0 <- (theta * psi)/big_t    
-  pv <- p0 * iota1             
-  big_n <- runif(10000,2,10)                  
-  t0 <- r0/(big_n * psi)       
-  tv <- t0/iota2               
+  psi   <- rgamma (10000, shape = 14, scale = (7/14))                    
+  n     <- runif (10000, 1, 10)                       
+  iota1 <- runif (10000, 1, 4)                   
+  iota2 <- runif (10000, 0.25, 1)               
+  p0    <- (theta * psi)/big_t    
+  pv    <- p0 * iota1             
+  big_n <- runif (10000, 2, 10)                  
+  t0    <- r0/(big_n * psi)       
+  tv    <- t0/iota2               
   
   pe_v1 <- (1-((1-pv*tv)^(2*1)*(1-p0*t0)^(2*1*n)))*(1-theta) # excess household risk from 1 visit
   pe_v2 <- (1-((1-pv*tv)^(2*2)*(1-p0*t0)^(2*2*n)))*(1-theta) # excess household risk from 2 visits
@@ -741,7 +747,7 @@ for (period in 1:length (suspension_periods)) {
   for (age_group in age_groups) {
     
     # extract vaccine coverage estimates for 2018 from WHO for 54 African countries
-    vaccine_coverage <- get_vaccine_coverage ()
+    vaccine_coverage <- get_vaccine_coverage (age_group)
     
     # add population estimates from UNWPP 2019
     vaccine_coverage_pop <- add_population (vaccine_coverage)
