@@ -282,38 +282,38 @@ estimate_covid_deaths <- function (vaccine_impact,
   t0    <- r0/(big_n * psi)              # prob. transmission given potentially infectious community contact
   tv    <- t0/iota2                      # prob. transmission given potentially infectious vaccinator contact
   
-  pe_v1_mid <- (1-((1-pv*tv)^(2*1)*(1-p0*t0)^(2*1*n)))*(1-theta) # excess household risk from 1 visit
-  pe_v2_mid <- (1-((1-pv*tv)^(2*2)*(1-p0*t0)^(2*2*n)))*(1-theta) # excess household risk from 2 visits
-  pe_v3_mid <- (1-((1-pv*tv)^(2*3)*(1-p0*t0)^(2*3*n)))*(1-theta) # excess household risk from 3 visits
+  pe_v1_mid <- (1-((1-pv*tv)^(2*1) * (1-p0*t0)^(2*1*n))) * (1-theta) # excess household risk from 1 visit
+  pe_v2_mid <- (1-((1-pv*tv)^(2*2) * (1-p0*t0)^(2*2*n))) * (1-theta) # excess household risk from 2 visits
+  pe_v3_mid <- (1-((1-pv*tv)^(2*3) * (1-p0*t0)^(2*3*n))) * (1-theta) # excess household risk from 3 visits
   
   # using PSA
   
-  big_t <- runif (10000, big_t-30, big_t+30) # uniform on -/+ 30 days from period that is passed in 
+  big_t <- runif  (10000, big_t-30, big_t+30) # uniform on -/+ 30 days from period that is passed in 
   r0    <- rgamma (10000, shape = 25, scale = (2.5/25))                   
   theta <- 1-(1/r0)            
   psi   <- rgamma (10000, shape = 14, scale = (7/14))                    
-  n     <- runif (10000, 1, 10)                       
-  iota1 <- runif (10000, 1, 4)                   
-  iota2 <- runif (10000, 0.25, 1)               
+  n     <- runif  (10000, 1, 10)                       
+  iota1 <- runif  (10000, 1, 4)                   
+  iota2 <- runif  (10000, 0.25, 1)               
   p0    <- (theta * psi)/big_t    
   pv    <- p0 * iota1             
-  big_n <- runif (10000, 2, 10)                  
+  big_n <- runif  (10000, 2, 10)                  
   t0    <- r0/(big_n * psi)       
   tv    <- t0/iota2               
   
-  pe_v1 <- (1-((1-pv*tv)^(2*1)*(1-p0*t0)^(2*1*n)))*(1-theta) # excess household risk from 1 visit
-  pe_v2 <- (1-((1-pv*tv)^(2*2)*(1-p0*t0)^(2*2*n)))*(1-theta) # excess household risk from 2 visits
-  pe_v3 <- (1-((1-pv*tv)^(2*3)*(1-p0*t0)^(2*3*n)))*(1-theta) # excess household risk from 3 visits
+  pe_v1 <- (1-((1-pv*tv)^(2*1) * (1-p0*t0)^(2*1*n))) * (1-theta) # excess household risk from 1 visit
+  pe_v2 <- (1-((1-pv*tv)^(2*2) * (1-p0*t0)^(2*2*n))) * (1-theta) # excess household risk from 2 visits
+  pe_v3 <- (1-((1-pv*tv)^(2*3) * (1-p0*t0)^(2*3*n))) * (1-theta) # excess household risk from 3 visits
   
   # upper bound
-  pe_v1_high <- quantile(pe_v1,0.975)
-  pe_v2_high <- quantile(pe_v2,0.975) 
-  pe_v3_high <- quantile(pe_v3,0.975) 
+  pe_v1_high <- quantile (pe_v1, 0.975)
+  pe_v2_high <- quantile (pe_v2, 0.975) 
+  pe_v3_high <- quantile (pe_v3, 0.975) 
   
   # lower bound
-  pe_v1_low <- quantile(pe_v1,0.025) 
-  pe_v2_low <- quantile(pe_v2,0.025) 
-  pe_v3_low <- quantile(pe_v3,0.025)
+  pe_v1_low <- quantile (pe_v1, 0.025) 
+  pe_v2_low <- quantile (pe_v2, 0.025) 
+  pe_v3_low <- quantile (pe_v3, 0.025)
   
   # age-specific infection fatality risk from Verity et al.
   # ifr(age 0-9) = 0.0016% 
@@ -341,24 +341,24 @@ estimate_covid_deaths <- function (vaccine_impact,
   # (4) 2 adults over 60 adjusted for the proportion of households with members <20 years that
   # also have a household member >60 years
   
-  vaccine_covid_impact [,child_covid_deaths := 0]
-  vaccine_covid_impact [,child_covid_deaths_low := 0]
+  vaccine_covid_impact [,child_covid_deaths      := 0]
+  vaccine_covid_impact [,child_covid_deaths_low  := 0]
   vaccine_covid_impact [,child_covid_deaths_high := 0]
   
-  vaccine_covid_impact [,sibling_covid_deaths := 0]
-  vaccine_covid_impact [,sibling_covid_deaths_low := 0]
+  vaccine_covid_impact [,sibling_covid_deaths      := 0]
+  vaccine_covid_impact [,sibling_covid_deaths_low  := 0]
   vaccine_covid_impact [,sibling_covid_deaths_high := 0]
   
-  vaccine_covid_impact [,parent_covid_deaths := 0]
-  vaccine_covid_impact [,parent_covid_deaths_low := 0]
+  vaccine_covid_impact [,parent_covid_deaths      := 0]
+  vaccine_covid_impact [,parent_covid_deaths_low  := 0]
   vaccine_covid_impact [,parent_covid_deaths_high := 0]
   
-  vaccine_covid_impact [,grandparent_covid_deaths := 0]
-  vaccine_covid_impact [,grandparent_covid_deaths_low := 0]
+  vaccine_covid_impact [,grandparent_covid_deaths      := 0]
+  vaccine_covid_impact [,grandparent_covid_deaths_low  := 0]
   vaccine_covid_impact [,grandparent_covid_deaths_high := 0]
   
-  vaccine_covid_impact [,covid_deaths := 0]
-  vaccine_covid_impact [,covid_deaths_low := 0]
+  vaccine_covid_impact [,covid_deaths      := 0]
+  vaccine_covid_impact [,covid_deaths_low  := 0]
   vaccine_covid_impact [,covid_deaths_high := 0]
   
   
