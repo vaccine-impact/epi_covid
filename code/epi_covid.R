@@ -276,7 +276,8 @@ add_hh_size_data <- function (vaccine_impact) {
 # ------------------------------------------------------------------------------
 # estimate potential deaths due to covid-19 by continuing vaccination programmes
 estimate_covid_deaths <- function (vaccine_impact, 
-                                   suspension_period) {
+                                   suspension_period, 
+                                   psa) {
   
   vaccine_covid_impact <- vaccine_impact 
   
@@ -312,13 +313,13 @@ estimate_covid_deaths <- function (vaccine_impact,
   big_t <- runif  (10000, big_t-30, big_t+30) # uniform on -/+ 30 days from period that is passed in 
   r0    <- rgamma (10000, shape = 25, scale = (2.5/25))                   
   theta <- 1-(1/r0)            
-  psi   <- rgamma (10000, shape = 14, scale = (7/14))                    
-  n     <- runif  (10000, 1, 10)                       
-  iota1 <- runif  (10000, 1, 4)                   
-  iota2 <- runif  (10000, 0.25, 1)               
+  psi   <- rgamma (psa, shape = 14, scale = (7/14))                    
+  n     <- runif  (psa, 1, 10)                       
+  iota1 <- runif  (psa, 1, 4)                   
+  iota2 <- runif  (psa, 0.25, 1)               
   p0    <- (theta * psi)/big_t    
   pv    <- p0 * iota1             
-  big_n <- runif  (10000, 2, 10)                  
+  big_n <- runif  (psa, 2, 10)                  
   t0    <- r0/(big_n * psi)       
   tv    <- t0/iota2               
   
@@ -748,6 +749,9 @@ tic ()
 source_wd <- getwd ()
 setwd ("../")
 
+# number of runs for probabilistic sensitivity analysis
+psa <- 10000
+
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
 # suspension_period_strings <- c ("3 months", "6 months", "12 months") 
@@ -782,7 +786,8 @@ for (period in 1:length (suspension_periods)) {
     
     # estimate potential deaths due to covid-19 by continuing vaccination programmes
     vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact, 
-                                                   suspension_period)
+                                                   suspension_period, 
+                                                   psa)
     
     #---------------------------------------------------------------------------
     pdf (paste0 ("figures/benefit_risk_ratio_maps_", 
