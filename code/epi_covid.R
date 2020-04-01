@@ -282,9 +282,9 @@ estimate_covid_deaths <- function (vaccine_impact,
   t0    <- r0/(big_n * psi)              # prob. transmission given potentially infectious community contact
   tv    <- t0/iota2                      # prob. transmission given potentially infectious vaccinator contact
   
-  pe_v1_mid <- (1-((1-pv*tv)^(2*1)*(1-p0*t0)^(2*1*n)))*(1-theta) # excess household risk from 1 visit
-  pe_v2_mid <- (1-((1-pv*tv)^(2*2)*(1-p0*t0)^(2*2*n)))*(1-theta) # excess household risk from 2 visits
-  pe_v3_mid <- (1-((1-pv*tv)^(2*3)*(1-p0*t0)^(2*3*n)))*(1-theta) # excess household risk from 3 visits
+  pe_v1_mid <- (1-((1-pv)^(2*1*tv)*(1-p0)^(2*1*n*t0)))*(1-theta) # excess household risk from 1 visit
+  pe_v2_mid <- (1-((1-pv)^(2*2*tv)*(1-p0)^(2*2*n*t0)))*(1-theta) # excess household risk from 2 visits
+  pe_v3_mid <- (1-((1-pv)^(2*3*tv)*(1-p0)^(2*3*n*t0)))*(1-theta) # excess household risk from 3 visits
   
   # using PSA
   
@@ -301,9 +301,9 @@ estimate_covid_deaths <- function (vaccine_impact,
   t0    <- r0/(big_n * psi)       
   tv    <- t0/iota2               
   
-  pe_v1 <- (1-((1-pv*tv)^(2*1)*(1-p0*t0)^(2*1*n)))*(1-theta) # excess household risk from 1 visit
-  pe_v2 <- (1-((1-pv*tv)^(2*2)*(1-p0*t0)^(2*2*n)))*(1-theta) # excess household risk from 2 visits
-  pe_v3 <- (1-((1-pv*tv)^(2*3)*(1-p0*t0)^(2*3*n)))*(1-theta) # excess household risk from 3 visits
+  pe_v1 <- (1-((1-pv)^(2*1*tv)*(1-p0)^(2*1*n*t0)))*(1-theta) # excess household risk from 1 visit
+  pe_v2 <- (1-((1-pv)^(2*2*tv)*(1-p0)^(2*2*n*t0)))*(1-theta) # excess household risk from 2 visits
+  pe_v3 <- (1-((1-pv)^(2*3*tv)*(1-p0)^(2*3*n*t0)))*(1-theta) # excess household risk from 3 visits
   
   # upper bound
   pe_v1_high <- quantile(pe_v1,0.975)
