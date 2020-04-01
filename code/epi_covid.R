@@ -151,16 +151,6 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
   # drop redundant columns
   vaccine_impact [, c("country_name", "gavi73", "who_region") := NULL]
   
-  # adjusted impact of MCV1 and MCV2 based on measles impact
-  for (country_code in unique (vaccine_impact [, ISO_code]) ) {
-    
-    vaccine_impact [ISO_code == country_code & Vaccine == "MCV2", 
-                    mid := (4/97) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", mid] ]
-    
-    vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", 
-                    mid := (93/97) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", mid] ]
-  }
-  
   # ----------------------------------------------------------------------------
   # 9 countries with no vaccine impact data from 98 vimc countries
   # Botswana, Algeria, Gabon, Equatorial Guinea, Libya
@@ -173,11 +163,42 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
   # vaccine impact in other African countries for corresponding vaccines
   
   for (vaccine  in unique (vaccine_impact [, Vaccine]) ) {
+    
+    # estimate mid value
     vaccine_impact [is.na(mid) & Vaccine == vaccine, 
                     mid := mean (vaccine_impact [!is.na (mid) & Vaccine == vaccine, mid] ) ]
+    
+    # proxy estimate of lower 95% credible interval of vaccine impact
+    vaccine_impact [is.na(low) & Vaccine == vaccine, 
+                    low := mean (vaccine_impact [!is.na (low) & Vaccine == vaccine, low/mid] ) * mid ]
+    
+    vaccine_impact [is.na(high) & Vaccine == vaccine, 
+                    high := mean (vaccine_impact [!is.na (high) & Vaccine == vaccine, high/mid] ) * mid ]
+    
+    # proxy estimate of upper 95% credible interval of vaccine impact
+    
   }
   # ----------------------------------------------------------------------------
  
+  # adjusted impact of MCV1 and MCV2 based on measles impact
+  for (value in c("mid", "low", "high")) {
+    
+    for (country_code in unique (vaccine_impact [, ISO_code]) ) {
+      
+      # vaccine_impact [ISO_code == country_code & Vaccine == "MCV2",
+      #                 mid := (4/97) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", mid] ]
+
+      vaccine_impact [ISO_code == country_code & Vaccine == "MCV2",
+                      as.character (as.name (value)) := (4/97) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", eval (as.name (value))] ]
+
+      # vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", 
+      #                 mid := (93/97) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", mid] ]
+      
+      vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", 
+                      as.character (as.name (value)) := (93/97) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", eval (as.name (value))] ]
+    }
+  }
+
   # estimate deaths averted by each vaccine in each country
   vaccine_impact [, vac_deaths_averted := (vac_population * mid / 1000)]
   
@@ -741,8 +762,8 @@ for (period in 1:length (suspension_periods)) {
   suspension_period_string <- suspension_period_strings [period]
   
   # age group for vaccine impact -- "all" or "under5" age groups
-  age_groups <- c("under5", "all")
-  # age_groups <- c("under5")
+  # age_groups <- c("under5", "all")
+  age_groups <- c("under5")
   
   for (age_group in age_groups) {
     
