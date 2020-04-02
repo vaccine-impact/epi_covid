@@ -203,15 +203,51 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
   # estimate deaths averted by each vaccine in each country
   vaccine_impact [, vac_deaths_averted := (vac_population * mid / 1000)]
   
+  # add run id
+  vaccine_impact [, run_id := 0]
+  
   # set column order
   setcolorder (vaccine_impact, 
-               c ("Continent", "ISO_code", "Country", "WHO_Region",   
+               c ("run_id", 
+                  "Continent", "ISO_code", "Country", "WHO_Region",   
                   "pop_year", "age", "gender", "population", 
                   "Vaccine", "vac_year", "Percent_covrage", "vac_population", 
                   "deaths_averted_1000FVP", "mid", "low", "high", 
                   "vac_deaths_averted") )
   
-  return (vaccine_impact)
+  # ----------------------------------------------------------------------------
+  # probabilistic sensitivity analysis
+
+  # estimate standard error in log scale for deaths averted per 1000 vaccinated individuals
+  vaccine_impact [, log_ci_se := (log (high) - log (low)) / 3.92]
+  
+  # initialise psa data table
+  vaccine_impact_psa <- vaccine_impact [0, ]
+  
+  # copy vaccine impact for PSA
+  for (i in 1:psa) {
+    
+    # copy data table
+    dt <- copy (vaccine_impact)
+    
+    # set run id
+    dt [, run_id := i]
+    
+    # add combined vaccine impact estimates to benefit risk table
+    vaccine_impact_psa <- rbindlist (list (vaccine_impact_psa, dt), 
+                                     use.names = TRUE)
+  }
+  
+  # update estimates for deaths averted by vaccination
+  vaccine_impact_psa [, vac_deaths_averted := 
+                        vac_population * (rlnorm (n       = psa, 
+                                                  meanlog = log (mid), 
+                                                  sdlog   = log_ci_se)) / 1000, 
+                      by = .(ISO_code, Vaccine) ]
+
+  # ----------------------------------------------------------------------------
+  
+  return (vaccine_impact_psa)
   
 } # end of function -- deaths_averted_vaccination
 # ------------------------------------------------------------------------------
@@ -311,8 +347,8 @@ estimate_covid_deaths <- function (vaccine_impact,
   
   # using PSA
   
-  big_t <- runif  (10000, big_t-30, big_t+30) # uniform on -/+ 30 days from period that is passed in 
-  r0    <- rgamma (10000, shape = 25, scale = (2.5/25))                   
+  big_t <- runif  (psa, big_t-30, big_t+30) # uniform on -/+ 30 days from period that is passed in 
+  r0    <- rgamma (psa, shape = 25, scale = (2.5/25))                   
   theta <- 1-(1/r0)            
   psi   <- rgamma (psa, shape = 14, scale = (7/14))                    
   n     <- runif  (psa, 1, 10)                       
@@ -787,8 +823,8 @@ tic ()
 source_wd <- getwd ()
 setwd ("../")
 
-# number of runs for probabilistic sensitivity analysis
-psa <- 10000
+set.seed (1)  # seed for random number generator
+psa <- 10     # number of runs for probabilistic sensitivity analysis
 
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
@@ -804,8 +840,8 @@ for (period in 1:length (suspension_periods)) {
   suspension_period_string <- suspension_period_strings [period]
   
   # age group for vaccine impact -- "all" or "under5" age groups
-  age_groups <- c("under5", "all")
-  # age_groups <- c("under5")
+  # age_groups <- c("under5", "all")
+  age_groups <- c("under5")
   
   for (age_group in age_groups) {
     
