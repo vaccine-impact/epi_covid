@@ -121,7 +121,8 @@ add_population <- function (vaccine_coverage) {
 # ------------------------------------------------------------------------------
 # add deaths averted by vaccination among "all" or "under5" age groups
 deaths_averted_vaccination <- function (vaccine_coverage_pop, 
-                                        age_group) {
+                                        age_group, 
+                                        psa) {
   
   # Estimating the health impact of vaccination against 10 pathogens in 98 low 
   # and middle income countries from 2000 to 2030
@@ -579,17 +580,30 @@ estimate_covid_deaths <- function (vaccine_impact,
 # estimate benefit risk ratio
 benefit_risk_ratio <- function (vaccine_covid_impact, 
                                 suspension_period, 
-                                risk, 
-                                ratio) {
+                                psa) {
   
   benefit_risk <- vaccine_covid_impact
   
-  # risk -- whole household (covid_deaths); 
-  #         child (child_covid_deaths); 
-  #         sibling (sibling_covid_deaths);
-  #         parent (parent_covid_deaths); 
-  #         grandparent (grandparent_covid_deaths)
+  # deaths among different groups
+  #   whole household (covid_deaths); 
+  #   child (child_covid_deaths); 
+  #   sibling (sibling_covid_deaths);
+  #   parent (parent_covid_deaths); 
+  #   grandparent (grandparent_covid_deaths)
+  deaths <- c ("covid_deaths", 
+               "child_covid_deaths", 
+               "sibling_covid_deaths",
+               "parent_covid_deaths",
+               "grandparent_covid_deaths")
   
+  # benefit_risk_ratios
+  br_ratios <- c ("benefit_risk_ratio",
+                  "child_benefit_risk_ratio", 
+                  "sibling_benefit_risk_ratio", 
+                  "parent_benefit_risk_ratio", 
+                  "grandparent_benefit_risk_ratio")
+  
+
   # compute benefit-risk ratio across combined vaccines in same visits
   
   # clinical visits for vaccination among children aged 0-11 months and their adult carers = 4 
@@ -615,9 +629,11 @@ benefit_risk_ratio <- function (vaccine_covid_impact,
   # benefit_risk_3visits_age0 [, covid_deaths := max (covid_deaths), by = "ISO_code"]
   # benefit_risk_1visits_age0 [, covid_deaths := max (covid_deaths), by = "ISO_code"]
   
-  benefit_risk_3visits_age0 [, as.character (as.name (risk)) := max (eval (as.name (risk))), by = "ISO_code"]
-  benefit_risk_1visits_age0 [, as.character (as.name (risk)) := max (eval (as.name (risk))), by = "ISO_code"]
-
+  for (death in deaths) {
+    benefit_risk_3visits_age0 [, as.character (as.name (death)) := max (eval (as.name (death))), by = "ISO_code"]
+    benefit_risk_1visits_age0 [, as.character (as.name (death)) := max (eval (as.name (death))), by = "ISO_code"]
+  }
+  
   # sample 1 row per country for combined vaccine impact estimates
   benefit_risk_3visits_age0 <- benefit_risk_3visits_age0 %>% group_by (ISO_code)
   benefit_risk_3visits_age0 <- sample_n (benefit_risk_3visits_age0, 1)
@@ -646,8 +662,10 @@ benefit_risk_ratio <- function (vaccine_covid_impact,
   benefit_risk_EPI [, vac_deaths_averted := sum (vac_deaths_averted, na.rm = T), by = "ISO_code"]
 
   # add covid deaths in the vaccine list
-  benefit_risk_EPI [, as.character (as.name (risk)) := sum (eval (as.name (risk)), na.rm = T), by = "ISO_code"]
-
+  for (death in deaths) {
+    benefit_risk_EPI [, as.character (as.name (death)) := sum (eval (as.name (death)), na.rm = T), by = "ISO_code"]
+  }
+  
   # sample 1 row per country for combined vaccine impact estimates
   benefit_risk_EPI <- benefit_risk_EPI %>% group_by (ISO_code)
   benefit_risk_EPI <- sample_n (benefit_risk_EPI, 1)
@@ -658,13 +676,15 @@ benefit_risk_ratio <- function (vaccine_covid_impact,
                      benefit_risk_EPI), 
                use.names = TRUE, 
                fill      = TRUE)
-  
   # ----------------------------------------------------------------------------
   
-  # estimate benefit ratio
-  benefit_risk [, as.character (as.name (ratio)) := 
-                  (vac_deaths_averted * suspension_period) / eval (as.name (risk))]
-  
+  # estimate benefit-risk ratios among different groups
+  for (i in 1:5) {
+    
+    benefit_risk [, as.character (as.name (br_ratios [i])) := 
+                    (vac_deaths_averted * suspension_period) / eval (as.name (deaths [i]) ) ]
+  }
+
   return (benefit_risk)
   
 } # end of function -- benefit_risk_ratio
@@ -677,61 +697,79 @@ benefit_risk_ratio_map <- function (benefit_risk,
                                     suspension_period_string, 
                                     age_group, 
                                     ratio) {
+  # file to save plots
+  pdf (paste0 ("figures/benefit_risk_ratio_maps_", 
+               suspension_period_string, "_suspension_",
+               age_group, ".pdf"))
   
-  # vaccination impact timeline -- lifetime or under 5-year-old children
+  # ggplot theme
+  theme_set (theme_bw())
+  
+  # benefit_risk_ratios
+  br_ratios <- c ("benefit_risk_ratio",
+                  "child_benefit_risk_ratio", 
+                  "sibling_benefit_risk_ratio", 
+                  "parent_benefit_risk_ratio", 
+                  "grandparent_benefit_risk_ratio")
+  
+    # vaccination impact timeline -- lifetime or under 5-year-old children
   if (age_group == "all") {
-    
     vaccine_impact_timeline <- "lifetime"
-    
   } else if (age_group == "under5") {
-    
     vaccine_impact_timeline <- "under 5-year-old children"
   } 
-  
   
   # map tutorial
   # https://www.r-spatial.org/r/2018/10/25/ggplot2-sf.html
   africa <- ne_countries (continent   = 'africa', 
                           scale       = "medium", 
                           returnclass = "sf")
-  setDT (africa)
+  setDT  (africa)
   setkey (africa, sov_a3)
   
+  # list of vaccines
   vaccines <- unique (benefit_risk$Vaccine)
   
-  theme_set (theme_bw())
+  # benefit-risk ratios for different groups
+  for (br_ratio in br_ratios) {
+    
+    # generate benefit-risk ratio maps for different vaccines
+    for (vaccine in vaccines) {
+      
+      # combine tables to add geometry
+      dt <- merge (x    = benefit_risk [Vaccine == vaccine], 
+                   y    = africa, 
+                   by.x = "ISO_code", 
+                   by.y = "iso_a3", 
+                   all  = T )
+      
+      # map of benefit-risk ratio for different vaccines
+      p <- ggplot (data = dt) +
+        geom_sf (aes (fill = eval (as.name (br_ratio)), geometry = geometry)) + 
+        scale_fill_gradient2 (midpoint = 1, low = "red", mid = "white", high = "blue", na.value = "grey70") +
+        # scale_color_gradient (low = "red", high = "blue", na.value = "grey90") +
+        # scale_fill_viridis_c(option = "plasma", direction = -1, na.value = "grey90") +
+        labs (title    = paste0 ("EPI benefits versus COVID-19 risks / ", br_ratio), 
+              subtitle = paste0 (vaccine, 
+                                 " / EPI suspension period: ", suspension_period_string, 
+                                 " / vaccine impact: ", vaccine_impact_timeline),  
+              fill     = "benefit-risk ratio") + 
+        theme (axis.text.x      = element_blank(), axis.ticks = element_blank()) + 
+        theme (axis.text.y      = element_blank(), axis.ticks = element_blank()) + 
+        theme (panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
+        theme (plot.title       = element_text(size = 12)) +
+        theme (plot.subtitle    = element_text(size = 8)) +
+        theme (legend.title     = element_text(size = 10)) 
+      
+      print (p)
+      
+    } # end -- for (vaccine in vaccines)
+    
+  } # end -- for (br_ratio in br_ratios) 
   
-  # generate benefit-risk ratio maps for different vaccines
-  for (vaccine in vaccines) {
-    
-    # combine tables to add geometry
-    dt <- merge (x    = benefit_risk [Vaccine == vaccine], 
-                 y    = africa, 
-                 by.x = "ISO_code", 
-                 by.y = "iso_a3", 
-                 all  = T )
-    
-    # map of benefit-risk ratio for different vaccines
-    p <- ggplot (data = dt) +
-      geom_sf (aes (fill = eval (as.name (ratio)), geometry = geometry)) + 
-      scale_fill_gradient2 (midpoint = 1, low = "red", mid = "white", high = "blue", na.value = "grey70") +
-            # scale_color_gradient (low = "red", high = "blue", na.value = "grey90") +
-      # scale_fill_viridis_c(option = "plasma", direction = -1, na.value = "grey90") +
-      labs (title    = paste0 ("EPI benefits versus COVID-19 risks / ", ratio), 
-            subtitle = paste0 (vaccine, 
-                               " / EPI suspension period: ", suspension_period_string, 
-                               " / vaccine impact: ", vaccine_impact_timeline),  
-            fill     = "benefit-risk ratio") + 
-      theme (axis.text.x      = element_blank(), axis.ticks = element_blank()) + 
-      theme (axis.text.y      = element_blank(), axis.ticks = element_blank()) + 
-      theme (panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-      theme (plot.title       = element_text(size = 12)) +
-      theme (plot.subtitle    = element_text(size = 8)) +
-      theme (legend.title     = element_text(size = 10)) 
-    
-    print (p)
-    
-  } # end -- for (vaccine in vaccines)
+  dev.off ()  # close plots file
+  
+  return ()
   
 } # end of function -- benefit_risk_ratio_map
 # ------------------------------------------------------------------------------
@@ -766,8 +804,8 @@ for (period in 1:length (suspension_periods)) {
   suspension_period_string <- suspension_period_strings [period]
   
   # age group for vaccine impact -- "all" or "under5" age groups
-  # age_groups <- c("under5", "all")
-  age_groups <- c("under5")
+  age_groups <- c("under5", "all")
+  # age_groups <- c("under5")
   
   for (age_group in age_groups) {
     
@@ -777,57 +815,28 @@ for (period in 1:length (suspension_periods)) {
     # add population estimates from UNWPP 2019
     vaccine_coverage_pop <- add_population (vaccine_coverage)
     
-    # add deaths averted by vaccination among "all" or "under5" age groups
-    vaccine_impact <- deaths_averted_vaccination (vaccine_coverage_pop, 
-                                                  age_group = age_group)
-    
     # add UN household size data from DHS / IPUMS
-    vaccine_impact <- add_hh_size_data (vaccine_impact)
+    vaccine_coverage_pop_hh <- add_hh_size_data (vaccine_coverage_pop)
+    
+    # add deaths averted by vaccination among "all" or "under5" age groups
+    vaccine_impact <- deaths_averted_vaccination (vaccine_coverage_pop_hh, 
+                                                  age_group = age_group, 
+                                                  psa)
     
     # estimate potential deaths due to covid-19 by continuing vaccination programmes
     vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact, 
                                                    suspension_period, 
                                                    psa)
-    
-    #---------------------------------------------------------------------------
-    pdf (paste0 ("figures/benefit_risk_ratio_maps_", 
-                 suspension_period_string, "_suspension_",
-                 age_group, ".pdf"))
-    
-    # compute benefit-risk ratios
-    ratios <- data.table (risk = c("covid_deaths", 
-                                   "child_covid_deaths", 
-                                   "sibling_covid_deaths",
-                                   "parent_covid_deaths", 
-                                   "grandparent_covid_deaths"), 
-                          
-                          ratio = c("benefit_risk_ratio", 
-                                    "child_benefit_risk_ratio", 
-                                    "sibling_benefit_risk_ratio", 
-                                    "parent_benefit_risk_ratio", 
-                                    "grandparent_benefit_risk_ratio")
-                          )
-    
-    benefit_risk <- vaccine_covid_impact
-    
-    for (i in 1:5) {
-
+  
     # estimate benefit risk ratio
-    benefit_risk <- benefit_risk_ratio (benefit_risk, 
+    benefit_risk <- benefit_risk_ratio (vaccine_covid_impact, 
                                         suspension_period, 
-                                        risk  = ratios [i, risk], 
-                                        ratio = ratios [i, ratio]
-                                        )
-
+                                        psa)
+    
     # generate map of benefit risk ratio
     benefit_risk_ratio_map (benefit_risk,
                             suspension_period_string,
-                            age_group = age_group, 
-                            ratio = ratios [i, ratio])
-    }
-
-    dev.off ()
-    #---------------------------------------------------------------------------
+                            age_group = age_group)
     
     # save benefit-risk results in tables folder
     fwrite (benefit_risk, file = paste0 ("tables/benefit_risk_results_", 
