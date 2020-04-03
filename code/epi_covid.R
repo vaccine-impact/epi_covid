@@ -947,8 +947,7 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
 # ------------------------------------------------------------------------------
 # estimate benefit risk ratio
 benefit_risk_ratio <- function (vaccine_covid_impact, 
-                                suspension_period, 
-                                psa) {
+                                suspension_period) {
   
   benefit_risk <- vaccine_covid_impact
   
@@ -1060,6 +1059,130 @@ benefit_risk_ratio <- function (vaccine_covid_impact,
 
 
 # ------------------------------------------------------------------------------
+# estimate benefit risk ratio for the whole continent of Africa
+benefit_risk_ratio_Africa <- function (vaccine_covid_impact, 
+                                       suspension_period) {
+  
+  benefit_risk_Africa <- vaccine_covid_impact
+  
+  benefit_risk_Africa <- 
+    benefit_risk_Africa [, list (vac_deaths_averted       = sum (vac_deaths_averted,       na.rm = T),
+                                 child_covid_deaths       = sum (child_covid_deaths,       na.rm = T),
+                                 sibling_covid_deaths     = sum (sibling_covid_deaths,     na.rm = T),         
+                                 parent_covid_deaths      = sum (parent_covid_deaths,      na.rm = T),
+                                 grandparent_covid_deaths = sum (grandparent_covid_deaths, na.rm = T),
+                                 covid_deaths             = sum (covid_deaths,             na.rm = T)
+    ), 
+    by = .(run_id, Continent, Vaccine) ]
+  
+  # deaths among different groups
+  #   whole household (covid_deaths); 
+  #   child (child_covid_deaths); 
+  #   sibling (sibling_covid_deaths);
+  #   parent (parent_covid_deaths); 
+  #   grandparent (grandparent_covid_deaths)
+  deaths <- c ("covid_deaths", 
+               "child_covid_deaths", 
+               "sibling_covid_deaths",
+               "parent_covid_deaths",
+               "grandparent_covid_deaths")
+  
+  # benefit_risk_ratios
+  br_ratios <- c ("benefit_risk_ratio",
+                  "child_benefit_risk_ratio", 
+                  "sibling_benefit_risk_ratio", 
+                  "parent_benefit_risk_ratio", 
+                  "grandparent_benefit_risk_ratio")
+  
+  
+  # compute benefit-risk ratio across combined vaccines in same visits
+  
+  # clinical visits for vaccination among children aged 0-11 months and their adult carers = 4 
+  #   (3 visits for DTP3-HepB-Hib + PCV3 + RotaC) + 
+  #   (1 visit for MCV1 + RCV1 + MenA + YF)
+  # clinical visits for vaccination among children aged 12-23 months and their adult carers = 1 
+  #   (1 visit for MCV2) -- single vaccine estimates already computed
+  
+  # ----------------------------------------------------------------------------
+  # compute benefit-risk ratio for vaccines in the same visit
+  benefit_risk_3visits_age0 <- benefit_risk_Africa [Vaccine %in% c("HepB3", "Hib3", "PCV3", "RotaC")]
+  benefit_risk_1visits_age0 <- benefit_risk_Africa [Vaccine %in% c("MCV1", "RCV1", "MenA", "YFV")]
+  
+  # set vaccine name list
+  benefit_risk_3visits_age0 [, Vaccine := "HepB3, Hib3, PCV3, RotaC"]
+  benefit_risk_1visits_age0 [, Vaccine := "MCV1, RCV1, MenA, YFV"]
+  
+  # add deaths averted by vaccination in the vaccine list
+  benefit_risk_3visits_age0 [, vac_deaths_averted := sum (vac_deaths_averted, na.rm = T), by = .(run_id)]
+  benefit_risk_1visits_age0 [, vac_deaths_averted := sum (vac_deaths_averted, na.rm = T), by = .(run_id)]
+  
+  # set covid deaths to the maximum estimate in the vaccine list
+  # benefit_risk_3visits_age0 [, covid_deaths := max (covid_deaths), by = "ISO_code"]
+  # benefit_risk_1visits_age0 [, covid_deaths := max (covid_deaths), by = "ISO_code"]
+  
+  for (death in deaths) {
+    benefit_risk_3visits_age0 [, as.character (as.name (death)) := max (eval (as.name (death))), by = .(run_id)]
+    benefit_risk_1visits_age0 [, as.character (as.name (death)) := max (eval (as.name (death))), by = .(run_id)]
+  }
+  
+  # sample 1 row per country for combined vaccine impact estimates
+  benefit_risk_3visits_age0 <- benefit_risk_3visits_age0 %>% group_by (run_id)
+  benefit_risk_3visits_age0 <- sample_n (benefit_risk_3visits_age0, 1)
+  
+  benefit_risk_1visits_age0 <- benefit_risk_1visits_age0 %>% group_by (run_id)
+  benefit_risk_1visits_age0 <- sample_n (benefit_risk_1visits_age0, 1)
+  
+  # add combined vaccine impact estimates to benefit risk table
+  benefit_risk_Africa <- 
+    rbindlist (list (benefit_risk_Africa, 
+                     benefit_risk_3visits_age0, 
+                     benefit_risk_1visits_age0), 
+               use.names = TRUE, 
+               fill      = TRUE)
+  
+  # ----------------------------------------------------------------------------
+  # compute benefit-risk ratio across EPI vaccines
+  benefit_risk_EPI <- benefit_risk_Africa [Vaccine %in% c("HepB3, Hib3, PCV3, RotaC", 
+                                                          "MCV1, RCV1, MenA, YFV",
+                                                          "MCV2")]
+  
+  # set vaccine name list
+  benefit_risk_EPI [, Vaccine := "HepB3, Hib3, PCV3, RotaC, MCV1, RCV1, MenA, YFV, MCV2"]
+  
+  # add deaths averted by vaccination in the vaccine list
+  benefit_risk_EPI [, vac_deaths_averted := sum (vac_deaths_averted, na.rm = T), by = .(run_id)]
+  
+  # add covid deaths in the vaccine list
+  for (death in deaths) {
+    benefit_risk_EPI [, as.character (as.name (death)) := sum (eval (as.name (death)), na.rm = T), by = .(run_id)]
+  }
+  
+  # sample 1 row per country for combined vaccine impact estimates
+  benefit_risk_EPI <- benefit_risk_EPI %>% group_by (run_id)
+  benefit_risk_EPI <- sample_n (benefit_risk_EPI, 1)
+  
+  # add combined vaccine impact estimates to benefit risk table
+  benefit_risk_Africa <- 
+    rbindlist (list (benefit_risk_Africa, 
+                     benefit_risk_EPI), 
+               use.names = TRUE, 
+               fill      = TRUE)
+  # ----------------------------------------------------------------------------
+  
+  # estimate benefit-risk ratios among different groups
+  for (i in 1:5) {
+    
+    benefit_risk_Africa [, as.character (as.name (br_ratios [i])) := 
+                           (vac_deaths_averted * suspension_period) / eval (as.name (deaths [i]) ) ]
+  }
+  
+  return (benefit_risk_Africa)
+  
+} # end of function -- benefit_risk_ratio_Africa
+# ------------------------------------------------------------------------------
+
+
+# ------------------------------------------------------------------------------
 # estimate benefit risk ratio -- summary estimates (median, credible intervals)
 benefit_risk_ratio_summary <- function (benefit_risk) {
   
@@ -1112,15 +1235,7 @@ benefit_risk_ratio_summary <- function (benefit_risk) {
                                   grandparent_covid_deaths_low         = quantile (grandparent_covid_deaths,      0.025, na.rm = T), 
                                   grandparent_covid_deaths_high        = quantile (grandparent_covid_deaths,      0.975, na.rm = T)
                                   ), 
-                          by = .(ISO_code, Vaccine)]
-  
-  # add country names
-  benefit_risk_summary [, Country := countrycode (sourcevar   = ISO_code,
-                                                  origin      = "iso3c",
-                                                  destination = "country.name")]
-
-  # set column order
-  setcolorder (benefit_risk_summary, "Country")
+                          by = .(ISO_code, Vaccine) ]
   
   return (benefit_risk_summary)
   
@@ -1224,7 +1339,7 @@ source_wd <- getwd ()
 setwd ("../")
 
 set.seed (1)  # seed for random number generator
-psa <- 1000   # number of runs for probabilistic sensitivity analysis
+psa <- 10000  # number of runs for probabilistic sensitivity analysis
 
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
@@ -1264,15 +1379,40 @@ for (period in 1:length (suspension_periods)) {
                                                    suspension_period, 
                                                    psa)
   
+    # --------------------------------------------------------------------------
     # estimate benefit risk ratio
+    # country level
     benefit_risk <- benefit_risk_ratio (vaccine_covid_impact, 
-                                        suspension_period, 
-                                        psa)
+                                        suspension_period)
     
+    # continental level
+    benefit_risk_Africa <- benefit_risk_ratio_Africa (vaccine_covid_impact, 
+                                                      suspension_period)
+    # --------------------------------------------------------------------------
 
+    # --------------------------------------------------------------------------
+    # estimate benefit risk ratio -- summary estimates (median, credible intervals)
+    # country level
+    benefit_risk_summary <- benefit_risk_ratio_summary (benefit_risk)
+    
+    # add country names
+    benefit_risk_summary [, Country := countrycode (sourcevar   = ISO_code,
+                                                    origin      = "iso3c",
+                                                    destination = "country.name")]
+    # set column order
+    setcolorder (benefit_risk_summary, "Country")
+    
+    # continental level
+    
+    # rename Continent column to ISO_code
+    setnames (benefit_risk_Africa, "Continent", "ISO_code")
     
     # estimate benefit risk ratio -- summary estimates (median, credible intervals)
-    benefit_risk_summary <- benefit_risk_ratio_summary (benefit_risk)
+    benefit_risk_summary_Africa <- benefit_risk_ratio_summary (benefit_risk_Africa) 
+    
+    # rename ISO_code column back to Continent
+    setnames (benefit_risk_summary_Africa, "ISO_code", "Continent")
+    # --------------------------------------------------------------------------
     
     # generate map of benefit risk ratio
     benefit_risk_ratio_map (benefit_risk_summary,
@@ -1294,6 +1434,13 @@ for (period in 1:length (suspension_periods)) {
                                          "_suspension_", 
                                          age_group, 
                                          ".csv") )
+    
+    # save benefit-risk results in tables folder
+    fwrite (benefit_risk_summary_Africa , file = paste0 ("tables/benefit_risk_summary_Africa_results_", 
+                                                  suspension_period_string, 
+                                                  "_suspension_", 
+                                                  age_group, 
+                                                  ".csv") )
     # --------------------------------------------------------------------------
     
   } # end -- for (age_group in age_groups)
