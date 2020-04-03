@@ -37,3 +37,4 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+tables/benefit_risk_results_6 months_suspension_under5.csv

@@ -5,6 +5,7 @@
 # suspending immunisation programmes in Africa during the COVID-19 pandemic. 
 
 # load libraries
+library (countrycode)
 library (data.table)
 library (ggplot2)
 library (rnaturalearth)
@@ -1059,11 +1060,79 @@ benefit_risk_ratio <- function (vaccine_covid_impact,
 
 
 # ------------------------------------------------------------------------------
+# estimate benefit risk ratio -- summary estimates (median, credible intervals)
+benefit_risk_ratio_summary <- function (benefit_risk) {
+  
+  benefit_risk_summary <- benefit_risk
+  
+  # estimate benefit-risk ratios among different groups
+  # median and credible intervals
+  benefit_risk_summary <- 
+    benefit_risk_summary [, list (benefit_risk_ratio                  = quantile (benefit_risk_ratio,             0.5,   na.rm = T),
+                                  benefit_risk_ratio_low              = quantile (benefit_risk_ratio,             0.025, na.rm = T), 
+                                  benefit_risk_ratio_high             = quantile (benefit_risk_ratio,             0.975, na.rm = T), 
+                                  
+                                  child_benefit_risk_ratio            = quantile (child_benefit_risk_ratio,       0.5,   na.rm = T),
+                                  child_benefit_risk_ratio_low        = quantile (child_benefit_risk_ratio,       0.025, na.rm = T), 
+                                  child_benefit_risk_ratio_high       = quantile (child_benefit_risk_ratio,       0.975, na.rm = T),
+                                  
+                                  sibling_benefit_risk_ratio          = quantile (sibling_benefit_risk_ratio,     0.5,   na.rm = T),
+                                  sibling_benefit_risk_ratio_low      = quantile (sibling_benefit_risk_ratio,     0.025, na.rm = T), 
+                                  sibling_benefit_risk_ratio_high     = quantile (sibling_benefit_risk_ratio,     0.975, na.rm = T),
+                                  
+                                  parent_benefit_risk_ratio           = quantile (parent_benefit_risk_ratio,      0.5,   na.rm = T),
+                                  parent_benefit_risk_ratio_low       = quantile (parent_benefit_risk_ratio,      0.025, na.rm = T), 
+                                  parent_benefit_risk_ratio_high      = quantile (parent_benefit_risk_ratio,      0.975, na.rm = T),
+                                  
+                                  grandparent_benefit_risk_ratio      = quantile (grandparent_benefit_risk_ratio, 0.5,   na.rm = T),
+                                  grandparent_benefit_risk_ratio_low  = quantile (grandparent_benefit_risk_ratio, 0.025, na.rm = T), 
+                                  grandparent_benefit_risk_ratio_high = quantile (grandparent_benefit_risk_ratio, 0.975, na.rm = T), 
+                                  
+                                  vac_deaths_averted                  = quantile (vac_deaths_averted,             0.5,   na.rm = T),
+                                  vac_deaths_averted_low              = quantile (vac_deaths_averted,             0.025, na.rm = T), 
+                                  vac_deaths_averted_high             = quantile (vac_deaths_averted,             0.975, na.rm = T), 
+                                  
+                                  covid_deaths                         = quantile (covid_deaths,                  0.5,   na.rm = T),
+                                  covid_deaths_low                     = quantile (covid_deaths,                  0.025, na.rm = T), 
+                                  covid_deaths_high                    = quantile (covid_deaths,                  0.975, na.rm = T), 
+                                  
+                                  child_covid_deaths                  = quantile (child_covid_deaths,             0.5,   na.rm = T),
+                                  child_covid_deaths_low              = quantile (child_covid_deaths,             0.025, na.rm = T), 
+                                  child_covid_deaths_high             = quantile (child_covid_deaths,             0.975, na.rm = T), 
+                                  
+                                  sibling_covid_deaths                = quantile (sibling_covid_deaths,           0.5,   na.rm = T),
+                                  sibling_covid_deaths_low            = quantile (sibling_covid_deaths,           0.025, na.rm = T), 
+                                  sibling_covid_deaths_high           = quantile (sibling_covid_deaths,           0.975, na.rm = T), 
+                                  
+                                  parent_covid_deaths                  = quantile (parent_covid_deaths,           0.5,   na.rm = T),
+                                  parent_covid_deaths_low              = quantile (parent_covid_deaths,           0.025, na.rm = T), 
+                                  parent_covid_deaths_high             = quantile (parent_covid_deaths,           0.975, na.rm = T), 
+                                  
+                                  grandparent_covid_deaths             = quantile (grandparent_covid_deaths,      0.5,   na.rm = T),
+                                  grandparent_covid_deaths_low         = quantile (grandparent_covid_deaths,      0.025, na.rm = T), 
+                                  grandparent_covid_deaths_high        = quantile (grandparent_covid_deaths,      0.975, na.rm = T)
+                                  ), 
+                          by = .(ISO_code, Vaccine)]
+  
+  # add country names
+  benefit_risk_summary [, Country := countrycode (sourcevar   = ISO_code,
+                                                  origin      = "iso3c",
+                                                  destination = "country.name")]
+
+  # set column order
+  setcolorder (benefit_risk_summary, "Country")
+  
+  return (benefit_risk_summary)
+  
+} # end of function -- benefit_risk_ratio_summary
+# ------------------------------------------------------------------------------
+
+
+# ------------------------------------------------------------------------------
 # generate map of benefit risk ratio
-benefit_risk_ratio_map <- function (benefit_risk, 
+benefit_risk_ratio_map <- function (benefit_risk_summary, 
                                     suspension_period_string, 
-                                    age_group, 
-                                    ratio) {
+                                    age_group) {
   # file to save plots
   pdf (paste0 ("figures/benefit_risk_ratio_maps_", 
                suspension_period_string, "_suspension_",
@@ -1104,7 +1173,7 @@ benefit_risk_ratio_map <- function (benefit_risk,
     for (vaccine in vaccines) {
       
       # combine tables to add geometry
-      dt <- merge (x    = benefit_risk [Vaccine == vaccine], 
+      dt <- merge (x    = benefit_risk_summary [Vaccine == vaccine], 
                    y    = africa, 
                    by.x = "ISO_code", 
                    by.y = "iso_a3", 
@@ -1155,7 +1224,7 @@ source_wd <- getwd ()
 setwd ("../")
 
 set.seed (1)  # seed for random number generator
-psa <- 10     # number of runs for probabilistic sensitivity analysis
+psa <- 1000   # number of runs for probabilistic sensitivity analysis
 
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
@@ -1200,17 +1269,32 @@ for (period in 1:length (suspension_periods)) {
                                         suspension_period, 
                                         psa)
     
+
+    
+    # estimate benefit risk ratio -- summary estimates (median, credible intervals)
+    benefit_risk_summary <- benefit_risk_ratio_summary (benefit_risk)
+    
     # generate map of benefit risk ratio
-    benefit_risk_ratio_map (benefit_risk,
+    benefit_risk_ratio_map (benefit_risk_summary,
                             suspension_period_string,
                             age_group = age_group)
     
+    # --------------------------------------------------------------------------
+    # save results
     # save benefit-risk results in tables folder
     fwrite (benefit_risk, file = paste0 ("tables/benefit_risk_results_", 
                                          suspension_period_string, 
                                          "_suspension_", 
                                          age_group, 
                                          ".csv") )
+    
+    # save benefit-risk results in tables folder
+    fwrite (benefit_risk_summary , file = paste0 ("tables/benefit_risk_summary_results_", 
+                                         suspension_period_string, 
+                                         "_suspension_", 
+                                         age_group, 
+                                         ".csv") )
+    # --------------------------------------------------------------------------
     
   } # end -- for (age_group in age_groups)
 
