@@ -41,11 +41,33 @@ get_vaccine_coverage <- function (age_group) {
   # extract data for 54 countries in Africa
   vaccine_coverage <- vaccine_coverage [Continent == "Africa" & vac_year == 2018 ]
   
+  # ----------------------------------------------------------------------------
+  # extract data for DTP3 vaccine
+  vaccine_coverage_dtp <- vaccine_coverage [Vaccine %in% c("DTP3")]
+  
+  vaccine_coverage_diptheria <- copy (vaccine_coverage_dtp)
+  vaccine_coverage_tetanus   <- copy (vaccine_coverage_dtp)
+  vaccine_coverage_pertussis <- copy (vaccine_coverage_dtp)
+  
+  vaccine_coverage_diptheria [, Vaccine := "Diptheria (DTP3)"]
+  vaccine_coverage_tetanus   [, Vaccine := "Tetanus (DTP3)"  ]
+  vaccine_coverage_pertussis [, Vaccine := "Pertussis (DTP3)"]
+  
+  # ----------------------------------------------------------------------------
+  
   # extract data for 9 vaccines 
   # HepB3, Hib3, HPVfem, MCV1, MenA, PCV3, RotaC, RCV1, YFV
   vaccine_coverage <- vaccine_coverage [Vaccine %in% c("HepB3", "Hib3", "HPVfem", 
                                                        "MCV1", "MCV2", "MenA", "PCV3", 
                                                        "RotaC", "RCV1", "YFV")]
+  
+  # add vaccine coverage data for DTP3 vaccine
+  vaccine_coverage <- rbindlist (list (vaccine_coverage, 
+                                       vaccine_coverage_diptheria, 
+                                       vaccine_coverage_tetanus, 
+                                       vaccine_coverage_pertussis), 
+                                 use.names = T)
+  
   # drop HPVfem for under-5 children
   if (age_group == "under5") {
     
@@ -129,16 +151,21 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
   # and middle income countries from 2000 to 2030
   # https://www.medrxiv.org/content/10.1101/19004358v1
   
+  # load DTP3 vaccine impact estimates
+  load ("data/data.vaccine_impact_dtp.rda")
+  
   # load vaccine impact estimates among "all" or "under5" age groups
   if (age_group == "all") { 
     
     load ("data/data.vaccine_impact.rda")
-    vaccine_impact <- data.vaccine_impact
+    vaccine_impact <- rbindlist (list (data.vaccine_impact_dtp, data.vaccine_impact), 
+                                 use.names = TRUE)
     
   } else if (age_group == "under5") { 
     
     load ("data/data.vaccine_impact_u5.rda")
-    vaccine_impact <- data.vaccine_impact_u5
+    vaccine_impact <- rbindlist (list (data.vaccine_impact_dtp, data.vaccine_impact_u5), 
+                                 use.names = TRUE)
   }
   
   # add column for vaccine impact per 1000 fully vaccinated people
@@ -164,7 +191,7 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
   # for countries wth no vaccine impact values, set them to the mean 
   # vaccine impact in other African countries for corresponding vaccines
   
-  for (vaccine  in unique (vaccine_impact [, Vaccine]) ) {
+  for (vaccine in unique (vaccine_impact [, Vaccine]) ) {
     
     # estimate mid value
     vaccine_impact [is.na(mid) & Vaccine == vaccine, 
@@ -743,26 +770,26 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
     # antigens with 3 contacts 
     
     # mid
-    vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3") & run_id == i,
+    vaccine_covid_impact [Vaccine %in% c("Diptheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3") & run_id == i,
                           child_covid_deaths := 
                             vac_population * suspension_period * pe_v3 [i] * ifr_child]
     
-    vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3") & run_id == i,
+    vaccine_covid_impact [Vaccine %in% c("Diptheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3") & run_id == i,
                           sibling_covid_deaths := 
                             vac_population * suspension_period * pe_v3 [i] *
                             (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child)]
     
-    vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3") & run_id == i,
+    vaccine_covid_impact [Vaccine %in% c("Diptheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3") & run_id == i,
                           parent_covid_deaths := 
                             vac_population * suspension_period * pe_v3 [i] * 2 * ifr_parents]
     
-    vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3") & run_id == i,
+    vaccine_covid_impact [Vaccine %in% c("Diptheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3") & run_id == i,
                           grandparent_covid_deaths := 
                             vac_population * suspension_period * pe_v3 [i] * 
                             (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * 
                                ifr_grandparents)]
     
-    vaccine_covid_impact [Vaccine %in% c("HepB3", "Hib3", "PCV3") & run_id == i,
+    vaccine_covid_impact [Vaccine %in% c("Diptheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3") & run_id == i,
                           covid_deaths := child_covid_deaths + sibling_covid_deaths + 
                             parent_covid_deaths + grandparent_covid_deaths]
     
@@ -981,11 +1008,11 @@ benefit_risk_ratio <- function (vaccine_covid_impact,
   
   # ----------------------------------------------------------------------------
   # compute benefit-risk ratio for vaccines in the same visit
-  benefit_risk_3visits_age0 <- benefit_risk [Vaccine %in% c("HepB3", "Hib3", "PCV3", "RotaC")]
+  benefit_risk_3visits_age0 <- benefit_risk [Vaccine %in% c("Diptheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3", "RotaC")]
   benefit_risk_1visits_age0 <- benefit_risk [Vaccine %in% c("MCV1", "RCV1", "MenA", "YFV")]
   
   # set vaccine name list
-  benefit_risk_3visits_age0 [, Vaccine := "HepB3, Hib3, PCV3, RotaC"]
+  benefit_risk_3visits_age0 [, Vaccine := "DTP3, HepB3, Hib3, PCV3, RotaC"]
   benefit_risk_1visits_age0 [, Vaccine := "MCV1, RCV1, MenA, YFV"]
   
   # add deaths averted by vaccination in the vaccine list
@@ -1018,12 +1045,12 @@ benefit_risk_ratio <- function (vaccine_covid_impact,
   
   # ----------------------------------------------------------------------------
   # compute benefit-risk ratio across EPI vaccines
-  benefit_risk_EPI <- benefit_risk [Vaccine %in% c("HepB3, Hib3, PCV3, RotaC", 
+  benefit_risk_EPI <- benefit_risk [Vaccine %in% c("DTP3, HepB3, Hib3, PCV3, RotaC", 
                                                    "MCV1, RCV1, MenA, YFV",
                                                    "MCV2")]
   
   # set vaccine name list
-  benefit_risk_EPI [, Vaccine := "HepB3, Hib3, PCV3, RotaC, MCV1, RCV1, MenA, YFV, MCV2"]
+  benefit_risk_EPI [, Vaccine := "DTP3, HepB3, Hib3, PCV3, RotaC, MCV1, RCV1, MenA, YFV, MCV2"]
   
   # add deaths averted by vaccination in the vaccine list
   benefit_risk_EPI [, vac_deaths_averted := sum (vac_deaths_averted, na.rm = T), by = .(ISO_code, run_id)]
@@ -1105,11 +1132,11 @@ benefit_risk_ratio_Africa <- function (vaccine_covid_impact,
   
   # ----------------------------------------------------------------------------
   # compute benefit-risk ratio for vaccines in the same visit
-  benefit_risk_3visits_age0 <- benefit_risk_Africa [Vaccine %in% c("HepB3", "Hib3", "PCV3", "RotaC")]
+  benefit_risk_3visits_age0 <- benefit_risk_Africa [Vaccine %in% c("Diptheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3", "RotaC")]
   benefit_risk_1visits_age0 <- benefit_risk_Africa [Vaccine %in% c("MCV1", "RCV1", "MenA", "YFV")]
   
   # set vaccine name list
-  benefit_risk_3visits_age0 [, Vaccine := "HepB3, Hib3, PCV3, RotaC"]
+  benefit_risk_3visits_age0 [, Vaccine := "DTP3, HepB3, Hib3, PCV3, RotaC"]
   benefit_risk_1visits_age0 [, Vaccine := "MCV1, RCV1, MenA, YFV"]
   
   # add deaths averted by vaccination in the vaccine list
@@ -1142,12 +1169,12 @@ benefit_risk_ratio_Africa <- function (vaccine_covid_impact,
   
   # ----------------------------------------------------------------------------
   # compute benefit-risk ratio across EPI vaccines
-  benefit_risk_EPI <- benefit_risk_Africa [Vaccine %in% c("HepB3, Hib3, PCV3, RotaC", 
+  benefit_risk_EPI <- benefit_risk_Africa [Vaccine %in% c("DTP3, HepB3, Hib3, PCV3, RotaC", 
                                                           "MCV1, RCV1, MenA, YFV",
                                                           "MCV2")]
   
   # set vaccine name list
-  benefit_risk_EPI [, Vaccine := "HepB3, Hib3, PCV3, RotaC, MCV1, RCV1, MenA, YFV, MCV2"]
+  benefit_risk_EPI [, Vaccine := "DTP3, HepB3, Hib3, PCV3, RotaC, MCV1, RCV1, MenA, YFV, MCV2"]
   
   # add deaths averted by vaccination in the vaccine list
   benefit_risk_EPI [, vac_deaths_averted := sum (vac_deaths_averted, na.rm = T), by = .(run_id)]
@@ -1302,14 +1329,14 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
         # scale_fill_viridis_c(option = "plasma", direction = -1, na.value = "grey90") +
         labs (title    = paste0 ("EPI benefits versus COVID-19 risks / ", br_ratio), 
               subtitle = paste0 (vaccine, 
-                                 " / EPI suspension period: ", suspension_period_string, 
+                                 "\n EPI suspension period: ", suspension_period_string, 
                                  " / vaccine impact: ", vaccine_impact_timeline),  
               fill     = "benefit-risk ratio") + 
         theme (axis.text.x      = element_blank(), axis.ticks = element_blank()) + 
         theme (axis.text.y      = element_blank(), axis.ticks = element_blank()) + 
         theme (panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
         theme (plot.title       = element_text(size = 12)) +
-        theme (plot.subtitle    = element_text(size = 8)) +
+        theme (plot.subtitle    = element_text(size = 10)) +
         theme (legend.title     = element_text(size = 10)) 
       
       print (p)
@@ -1339,7 +1366,7 @@ source_wd <- getwd ()
 setwd ("../")
 
 set.seed (1)  # seed for random number generator
-psa <- 10000  # number of runs for probabilistic sensitivity analysis
+psa <- 1000   # number of runs for probabilistic sensitivity analysis
 
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
@@ -1371,8 +1398,8 @@ for (period in 1:length (suspension_periods)) {
     
     # add deaths averted by vaccination among "all" or "under5" age groups
     vaccine_impact_psa <- deaths_averted_vaccination (vaccine_coverage_pop_hh, 
-                                                  age_group = age_group, 
-                                                  psa)
+                                                      age_group = age_group, 
+                                                      psa)
     
     # estimate potential deaths due to covid-19 by continuing vaccination programmes
     vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact_psa, 
