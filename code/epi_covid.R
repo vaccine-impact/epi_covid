@@ -1324,20 +1324,28 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
       # map of benefit-risk ratio for different vaccines
       p <- ggplot (data = dt) +
         geom_sf (aes (fill = eval (as.name (br_ratio)), geometry = geometry)) + 
-        scale_fill_gradient2 (midpoint = 1, low = "red", mid = "white", high = "blue", na.value = "grey70") +
-        # scale_color_gradient (low = "red", high = "blue", na.value = "grey90") +
-        # scale_fill_viridis_c(option = "plasma", direction = -1, na.value = "grey90") +
-        labs (title    = paste0 ("EPI benefits versus COVID-19 risks / ", br_ratio), 
-              subtitle = paste0 (vaccine, 
-                                 "\n EPI suspension period: ", suspension_period_string, 
-                                 " / vaccine impact: ", vaccine_impact_timeline),  
+        scale_fill_viridis_c (option = "plasma", direction = -1) + 
+        # scale_fill_gradient2 (midpoint = 0, 
+        #                       low = "red", 
+        #                       mid = "white", 
+        #                       high = "blue", 
+        #                       na.value = "grey70", 
+        #                       trans = "log", 
+        #                       limits = c (0.5, NA), 
+        #                       breaks = c(1, 10, 100)) +
+        labs (title = "Deaths averted by vaccination per excess COVID-19 death",  # uncomment this line to generate figures for paper
+        # labs (title    = paste0 ("Deaths averted by vaccination per excess COVID-19 death / ", br_ratio),  # comment
+              subtitle = paste0 (vaccine), 
+          #                       "\n EPI suspension period: ", suspension_period_string,           # comment
+           #                      " / vaccine impact: ", vaccine_impact_timeline),                  # comment
               fill     = "benefit-risk ratio") + 
         theme (axis.text.x      = element_blank(), axis.ticks = element_blank()) + 
         theme (axis.text.y      = element_blank(), axis.ticks = element_blank()) + 
         theme (panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
         theme (plot.title       = element_text(size = 12)) +
         theme (plot.subtitle    = element_text(size = 10)) +
-        theme (legend.title     = element_text(size = 10)) 
+        theme (legend.title     = element_text(size = 10))
+
       
       print (p)
       
