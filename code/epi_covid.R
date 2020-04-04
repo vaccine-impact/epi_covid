@@ -730,10 +730,13 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
   
   # assume ifr for household members as follows
   
-  ifr_child        <- 0.000016  # assume ifr for age 0-9
-  ifr_parents      <- 0.00031   # assume ifr for age 20-29 
-  ifr_grandparents <- 0.019     # assume ifr for age 60-69
+  # ifr_child        <- 0.000016  # assume ifr for age 0-9
+  # ifr_parents      <- 0.00031   # assume ifr for age 20-29 
+  # ifr_grandparents <- 0.019     # assume ifr for age 60-69
   
+  ifr_child        <- rgamma (psa,shape=0.5163,rate=10000) # assume ifr for age 0-9
+  ifr_parents      <- rgamma (psa,shape=3.5485,rate=10000) # assume ifr for age 20-29 
+  ifr_grandparents <- rgamma (psa,shape=14.563,rate=737.06) # assume ifr for age 60-69
   
   
   # add a column for estimated covid-19 deaths due to continuing vaccination programmes
@@ -774,22 +777,22 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
     # mid
     vaccine_covid_impact [Vaccine %in% c("Diptheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3") & run_id == i,
                           child_covid_deaths := 
-                            vac_population * suspension_period * pe_v3 [i] * ifr_child]
+                            vac_population * suspension_period * pe_v3 [i] * ifr_child [i]]
     
     vaccine_covid_impact [Vaccine %in% c("Diptheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3") & run_id == i,
                           sibling_covid_deaths := 
                             vac_population * suspension_period * pe_v3 [i] *
-                            (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child)]
+                            (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child [i])]
     
     vaccine_covid_impact [Vaccine %in% c("Diptheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3") & run_id == i,
                           parent_covid_deaths := 
-                            vac_population * suspension_period * pe_v3 [i] * 2 * ifr_parents]
+                            vac_population * suspension_period * pe_v3 [i] * 2 * ifr_parents [i]]
     
     vaccine_covid_impact [Vaccine %in% c("Diptheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3") & run_id == i,
                           grandparent_covid_deaths := 
                             vac_population * suspension_period * pe_v3 [i] * 
                             (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * 
-                               ifr_grandparents)]
+                               ifr_grandparents [i])]
     
     vaccine_covid_impact [Vaccine %in% c("Diptheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3") & run_id == i,
                           covid_deaths := child_covid_deaths + sibling_covid_deaths + 
@@ -839,22 +842,22 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
     # mid
     vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem") & run_id == i,
                           child_covid_deaths := 
-                            vac_population * suspension_period * pe_v2 [i] * ifr_child]
+                            vac_population * suspension_period * pe_v2 [i] * ifr_child [i]]
     
     vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem") & run_id == i,
                           sibling_covid_deaths := 
                             vac_population * suspension_period * pe_v2 [i] *
-                            (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child)]
+                            (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child [i])]
     
     vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem") & run_id == i,
                           parent_covid_deaths := 
-                            vac_population * suspension_period * pe_v2 [i] * 2 * ifr_parents]
+                            vac_population * suspension_period * pe_v2 [i] * 2 * ifr_parents [i]]
     
     vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem") & run_id == i,
                           grandparent_covid_deaths := 
                             vac_population * suspension_period * pe_v2 [i] * 
                             (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * 
-                               ifr_grandparents)]
+                               ifr_grandparents [i])]
     
     vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem") & run_id == i,
                           covid_deaths := child_covid_deaths + sibling_covid_deaths + 
@@ -904,22 +907,22 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
     # mid
     vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA") & run_id == i,
                           child_covid_deaths := 
-                            vac_population * suspension_period * pe_v1 [i] * ifr_child]
+                            vac_population * suspension_period * pe_v1 [i] * ifr_child [i]]
     
     vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA") & run_id == i,
                           sibling_covid_deaths := 
                             vac_population * suspension_period * pe_v1 [i] *
-                            (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child)]
+                            (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child [i])]
     
     vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA") & run_id == i,
                           parent_covid_deaths := 
-                            vac_population * suspension_period * pe_v1 [i] * 2 * ifr_parents]
+                            vac_population * suspension_period * pe_v1 [i] * 2 * ifr_parents [i]]
     
     vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA") & run_id == i,
                           grandparent_covid_deaths := 
                             vac_population * suspension_period * pe_v1 [i] * 
                             (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) * 
-                               ifr_grandparents)]
+                               ifr_grandparents [i])]
     
     vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA") & run_id == i,
                           covid_deaths := child_covid_deaths + sibling_covid_deaths + 
@@ -1326,14 +1329,15 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
       # map of benefit-risk ratio for different vaccines
       p <- ggplot (data = dt) +
         geom_sf (aes (fill = eval (as.name (br_ratio)), geometry = geometry)) + 
-        scale_fill_gradient2 (midpoint = 1, low = "red", mid = "white", high = "blue", na.value = "grey70") +
+        scale_fill_gradient2 (midpoint = 1, low = "red", mid = "white", high = "blue", 
+                              na.value = "grey70", trans ="log10") +
         # scale_color_gradient (low = "red", high = "blue", na.value = "grey90") +
         # scale_fill_viridis_c(option = "plasma", direction = -1, na.value = "grey90") +
         labs (title    = paste0 ("EPI benefits versus COVID-19 risks / ", br_ratio), 
               subtitle = paste0 (vaccine, 
                                  "\n EPI suspension period: ", suspension_period_string, 
                                  " / vaccine impact: ", vaccine_impact_timeline),  
-              fill     = "benefit-risk ratio") + 
+              fill     = "Death averted by EPI per COVID-19 death caused") + 
         theme (axis.text.x      = element_blank(), axis.ticks = element_blank()) + 
         theme (axis.text.y      = element_blank(), axis.ticks = element_blank()) + 
         theme (panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
