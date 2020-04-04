@@ -734,9 +734,9 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
   # ifr_parents      <- 0.00031   # assume ifr for age 20-29 
   # ifr_grandparents <- 0.019     # assume ifr for age 60-69
   
-  ifr_child        <- rgamma (psa,shape=0.5163,rate=10000) # assume ifr for age 0-9
-  ifr_parents      <- rgamma (psa,shape=3.5485,rate=10000) # assume ifr for age 20-29 
-  ifr_grandparents <- rgamma (psa,shape=14.563,rate=737.06) # assume ifr for age 60-69
+  ifr_child        <- rgamma (psa, shape = 0.5163, rate = 10000) # assume ifr for age 0-9
+  ifr_parents      <- rgamma (psa, shape = 3.5485, rate = 10000) # assume ifr for age 20-29 
+  ifr_grandparents <- rgamma (psa, shape = 14.563, rate = 737.06) # assume ifr for age 60-69
   
   
   # add a column for estimated covid-19 deaths due to continuing vaccination programmes
@@ -1329,33 +1329,21 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
       # map of benefit-risk ratio for different vaccines
       p <- ggplot (data = dt) +
         geom_sf (aes (fill = eval (as.name (br_ratio)), geometry = geometry)) + 
-
-        scale_fill_viridis_c (option = "plasma", direction = -1) + 
-        # scale_fill_gradient2 (midpoint = 0, 
-        #                       low = "red", 
-        #                       mid = "white", 
-        #                       high = "blue", 
-        #                       na.value = "grey70", 
-        #                       trans = "log", 
-        #                       limits = c (0.5, NA), 
-        #                       breaks = c(1, 10, 100)) +
+        # scale_fill_viridis_c (option = "plasma", direction = -1) + 
+        scale_fill_gradient2 (midpoint = 0,
+                              low = "red",
+                              mid = "white",
+                              high = "blue",
+                              na.value = "grey70",
+                              trans = "log",
+                              limits = c (0.5, NA),
+                              breaks = c(0, 0.5, 1, 5, 10, 50, 100)) +
         labs (title = "Deaths averted by vaccination per excess COVID-19 death",  # uncomment this line to generate figures for paper
         # labs (title    = paste0 ("Deaths averted by vaccination per excess COVID-19 death / ", br_ratio),  # comment
               subtitle = paste0 (vaccine), 
           #                       "\n EPI suspension period: ", suspension_period_string,           # comment
            #                      " / vaccine impact: ", vaccine_impact_timeline),                  # comment
-              fill     = "benefit-risk ratio") + 
-
-        scale_fill_gradient2 (midpoint = 1, low = "red", mid = "white", high = "blue", 
-                              na.value = "grey70", trans ="log10") +
-        # scale_color_gradient (low = "red", high = "blue", na.value = "grey90") +
-        # scale_fill_viridis_c(option = "plasma", direction = -1, na.value = "grey90") +
-        labs (title    = paste0 ("EPI benefits versus COVID-19 risks / ", br_ratio), 
-              subtitle = paste0 (vaccine, 
-                                 "\n EPI suspension period: ", suspension_period_string, 
-                                 " / vaccine impact: ", vaccine_impact_timeline),  
-              fill     = "Death averted by EPI per COVID-19 death caused") + 
-
+              fill     = "benefit-risk ratio") +
         theme (axis.text.x      = element_blank(), axis.ticks = element_blank()) + 
         theme (axis.text.y      = element_blank(), axis.ticks = element_blank()) + 
         theme (panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
@@ -1391,7 +1379,7 @@ source_wd <- getwd ()
 setwd ("../")
 
 set.seed (1)  # seed for random number generator
-psa <- 1000   # number of runs for probabilistic sensitivity analysis
+psa <- 10   # number of runs for probabilistic sensitivity analysis
 
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
