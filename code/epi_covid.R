@@ -988,6 +988,15 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
                   "parent_benefit_risk_ratio", 
                   "grandparent_benefit_risk_ratio")
   
+  # benefit_risk_ratio titles
+  br_ratio_title <- c ("Benefit-risk ratio (household)",
+                       "Benefit-risk ratio (vaccinated children)", 
+                       "Benefit-risk ratio (siblings)", 
+                       "Benefit-risk ratio (parents)", 
+                       "Benefit-risk ratio (grandparents)")
+  
+  i <- 0  # counter for benefit_risk_ratio titles
+  
     # vaccination impact timeline -- lifetime or under 5-year-old children
   if (age_group == "all") {
     vaccine_impact_timeline <- "lifetime"
@@ -1008,6 +1017,8 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
   
   # benefit-risk ratios for different groups
   for (br_ratio in br_ratios) {
+
+    i <- i + 1  # counter for benefit_risk_ratio titles
     
     # generate benefit-risk ratio maps for different vaccines
     for (vaccine in vaccines) {
@@ -1028,12 +1039,14 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
       p <- ggplot (data = dt) +
         geom_sf (aes (fill = eval (as.name (br_ratio)), geometry = geometry)) + 
         # scale_fill_viridis_c (option = "plasma", direction = -1, limits = c(0, NA), na.value = "grey80") + 
-        scale_fill_gradient2 (midpoint = 1,
+        scale_fill_gradient2 (midpoint = 0,
                               low = "red",
                               mid = "white",
                               high = "blue",
                               na.value = "grey80",
-                              limits = c (0, NA)) +
+                              limits = c (NA, 500), 
+                              trans = "log10", 
+                              breaks = c(0.2, 1, 5, 10, 50, 100, 500)) +
 
         # scale_fill_gradient2 (midpoint = 0,
         #                       low = "red",
@@ -1043,18 +1056,25 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
         #                       trans = "log",
         #                       limits = c (0.5, NA),
         #                       breaks = c(0, 0.5, 1, 5, 10, 50, 100)) +
-        labs (title = "Deaths averted by vaccination per excess COVID-19 death",  # uncomment this line to generate figures for paper
-        # labs (title    = paste0 ("Deaths averted by vaccination per excess COVID-19 death / ", br_ratio),  # comment
-              subtitle = paste0 (vaccine), 
-          #                       "\n EPI suspension period: ", suspension_period_string,           # comment
-           #                      " / vaccine impact: ", vaccine_impact_timeline),                  # comment
+        
+        # ----------------------------------------------------------------------
+        labs (title    = paste0 (br_ratio_title [i], " - Deaths averted by vaccination per excess COVID-19 death"),
+            
+        # uncomment this part to generate figures for paper
+        subtitle = paste0 (vaccine),
+
+        # uncomment this part to generate figures for appendix
+        # subtitle = paste0 (vaccine, "\n EPI suspension period: ", suspension_period_string, " / vaccine impact: ", vaccine_impact_timeline),
+        # ----------------------------------------------------------------------
+      
               fill     = "benefit-risk ratio") +
         theme (axis.text.x      = element_blank(), axis.ticks = element_blank()) + 
         theme (axis.text.y      = element_blank(), axis.ticks = element_blank()) + 
         theme (panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-        theme (plot.title       = element_text(size = 12)) +
-        theme (plot.subtitle    = element_text(size = 10)) +
-        theme (legend.title     = element_text(size = 10))
+        theme (plot.title       = element_text (size = 11)) +
+        theme (plot.subtitle    = element_text (size = 10)) +
+        theme (legend.title     = element_text (size = 10)) + 
+        theme (legend.text      = element_text (size = 8))
 
       
       print (p)
