@@ -1027,7 +1027,14 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
       # map of benefit-risk ratio for different vaccines
       p <- ggplot (data = dt) +
         geom_sf (aes (fill = eval (as.name (br_ratio)), geometry = geometry)) + 
-        scale_fill_viridis_c (option = "plasma", direction = -1, limits = c(0, NA), na.value = "grey80") + 
+        # scale_fill_viridis_c (option = "plasma", direction = -1, limits = c(0, NA), na.value = "grey80") + 
+        scale_fill_gradient2 (midpoint = 1,
+                              low = "red",
+                              mid = "white",
+                              high = "blue",
+                              na.value = "grey80",
+                              limits = c (0, NA)) +
+
         # scale_fill_gradient2 (midpoint = 0,
         #                       low = "red",
         #                       mid = "white",
