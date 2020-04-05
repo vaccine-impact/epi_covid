@@ -1326,6 +1326,11 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
                    by.y = "iso_a3", 
                    all  = T )
       
+      # copy data for Somalia to Somaliland
+      dt [sov_a3 == "SOL", 
+          c(as.character (as.name (br_ratio))) := dt [ISO_code == "SOM", eval (as.name (br_ratio))]
+          ]
+      
       # map of benefit-risk ratio for different vaccines
       p <- ggplot (data = dt) +
         geom_sf (aes (fill = eval (as.name (br_ratio)), geometry = geometry)) + 
