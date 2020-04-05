@@ -1091,6 +1091,71 @@ save_benefit_risk_results <- function (benefit_risk,
   
   # save benefit-risk results summary -- country level -- for paper
   
+  # extract benefit-risk results for 
+  # DTP3, HepB3, Hib3, PCV3, RotaC, MCV1, RCV1, MenA, YFV, MCV2
+  dt <- benefit_risk_summary [Vaccine == "DTP3, HepB3, Hib3, PCV3, RotaC, MCV1, RCV1, MenA, YFV, MCV2"]
+  
+  # round off to 1 decimal points
+  dt <- dt [, lapply(.SD, round, 0),
+            .SDcols = c("benefit_risk_ratio",
+                        "benefit_risk_ratio_low",
+                        "benefit_risk_ratio_high", 
+                        
+                        "child_benefit_risk_ratio",
+                        "child_benefit_risk_ratio_low",
+                        "child_benefit_risk_ratio_high",
+                        
+                        "sibling_benefit_risk_ratio",
+                        "sibling_benefit_risk_ratio_low",
+                        "sibling_benefit_risk_ratio_high",
+                        
+                        "parent_benefit_risk_ratio",
+                        "parent_benefit_risk_ratio_low",
+                        "parent_benefit_risk_ratio_high",
+                        
+                        "grandparent_benefit_risk_ratio",
+                        "grandparent_benefit_risk_ratio_low",
+                        "grandparent_benefit_risk_ratio_high"
+            ), 
+            by = .(Country)]
+  
+  dt [, ':=' ('Household' = paste0 (benefit_risk_ratio, " [", 
+                                    benefit_risk_ratio_low, "-",
+                                    benefit_risk_ratio_high, "]"), 
+              
+              'Vaccinated children' = paste0 (child_benefit_risk_ratio, " [", 
+                                              child_benefit_risk_ratio_low, "-",
+                                              child_benefit_risk_ratio_high, "]"),
+              
+              'Siblings' = paste0 (sibling_benefit_risk_ratio, " [", 
+                                   sibling_benefit_risk_ratio_low, "-",
+                                   sibling_benefit_risk_ratio_high, "]"),
+              
+              'Parents' = paste0 (parent_benefit_risk_ratio, " [", 
+                                  parent_benefit_risk_ratio_low, "-",
+                                  parent_benefit_risk_ratio_high, "]"),
+              
+              'Grandparents' = paste0 (grandparent_benefit_risk_ratio, " [", 
+                                       grandparent_benefit_risk_ratio_low, "-",
+                                       grandparent_benefit_risk_ratio_high, "]")
+              ) ]
+  
+  # drop non-requisite columns
+  dt [, c("benefit_risk_ratio",             "benefit_risk_ratio_low",             "benefit_risk_ratio_high", 
+          "child_benefit_risk_ratio",       "child_benefit_risk_ratio_low",       "child_benefit_risk_ratio_high", 
+          "sibling_benefit_risk_ratio",     "sibling_benefit_risk_ratio_low",     "sibling_benefit_risk_ratio_high", 
+          "parent_benefit_risk_ratio",      "parent_benefit_risk_ratio_low",      "parent_benefit_risk_ratio_high", 
+          "grandparent_benefit_risk_ratio", "grandparent_benefit_risk_ratio_low", "grandparent_benefit_risk_ratio_high")
+      := NULL]
+  
+  fwrite (dt,
+          paste0 ("tables/Table_benefit_risk_summary_results_", 
+                  suspension_period_string, 
+                  "_suspension_", 
+                  age_group, 
+                  ".csv"),
+          col.names = T, row.names = F)
+  
   # ----------------------------------------------------------------------------
   
   # ----------------------------------------------------------------------------
@@ -1162,10 +1227,9 @@ save_benefit_risk_results <- function (benefit_risk,
                   age_group, 
                   ".csv"),
           col.names = T, row.names = F)
-  
   # ----------------------------------------------------------------------------
 
-return ()
+  return ()
 
 } # end of function -- benefit_risk_ratio_map
 # ------------------------------------------------------------------------------
@@ -1183,7 +1247,7 @@ source_wd <- getwd ()
 setwd ("../")
 
 set.seed (1)  # seed for random number generator
-psa <- 10   # number of runs for probabilistic sensitivity analysis
+psa <- 1000   # number of runs for probabilistic sensitivity analysis
 
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
