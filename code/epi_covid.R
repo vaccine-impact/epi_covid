@@ -1372,6 +1372,45 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
 
 
 # ------------------------------------------------------------------------------
+# save benefit-risk results 
+save_benefit_risk_results <- function (benefit_risk, 
+                                       benefit_risk_summary, 
+                                       benefit_risk_summary_Africa, 
+                                       suspension_period_string, 
+                                       age_group) {
+
+  # save benefit-risk results of all psa runs
+  fwrite (benefit_risk, file = paste0 ("tables/benefit_risk_results_", 
+                                       suspension_period_string, 
+                                       "_suspension_", 
+                                       age_group, 
+                                       ".csv") )
+  
+  # save benefit-risk results summary -- country level
+  fwrite (benefit_risk_summary , file = paste0 ("tables/benefit_risk_summary_results_", 
+                                                suspension_period_string, 
+                                                "_suspension_", 
+                                                age_group, 
+                                                ".csv") )
+  
+  # save benefit-risk results summary -- continent level
+  fwrite (benefit_risk_summary_Africa , file = paste0 ("tables/benefit_risk_summary_Africa_results_", 
+                                                       suspension_period_string, 
+                                                       "_suspension_", 
+                                                       age_group, 
+                                                       ".csv") )
+  
+  # ----------------------------------------------------------------------------
+  # save benefit-risk results summary -- continent level -- for paper
+  
+  # ----------------------------------------------------------------------------
+
+return ()
+
+} # end of function -- benefit_risk_ratio_map
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
 # main program 
 # ------------------------------------------------------------------------------
 
@@ -1384,7 +1423,7 @@ source_wd <- getwd ()
 setwd ("../")
 
 set.seed (1)  # seed for random number generator
-psa <- 1000   # number of runs for probabilistic sensitivity analysis
+psa <- 10   # number of runs for probabilistic sensitivity analysis
 
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
@@ -1448,7 +1487,6 @@ for (period in 1:length (suspension_periods)) {
     setcolorder (benefit_risk_summary, "Country")
     
     # continental level
-    
     # rename Continent column to ISO_code
     setnames (benefit_risk_Africa, "Continent", "ISO_code")
     
@@ -1464,29 +1502,12 @@ for (period in 1:length (suspension_periods)) {
                             suspension_period_string,
                             age_group = age_group)
     
-    # --------------------------------------------------------------------------
-    # save results
-    # save benefit-risk results in tables folder
-    fwrite (benefit_risk, file = paste0 ("tables/benefit_risk_results_", 
-                                         suspension_period_string, 
-                                         "_suspension_", 
-                                         age_group, 
-                                         ".csv") )
-    
-    # save benefit-risk results in tables folder
-    fwrite (benefit_risk_summary , file = paste0 ("tables/benefit_risk_summary_results_", 
-                                         suspension_period_string, 
-                                         "_suspension_", 
-                                         age_group, 
-                                         ".csv") )
-    
-    # save benefit-risk results in tables folder
-    fwrite (benefit_risk_summary_Africa , file = paste0 ("tables/benefit_risk_summary_Africa_results_", 
-                                                  suspension_period_string, 
-                                                  "_suspension_", 
-                                                  age_group, 
-                                                  ".csv") )
-    # --------------------------------------------------------------------------
+    # save benefit-risk results
+    save_benefit_risk_results (benefit_risk, 
+                               benefit_risk_summary, 
+                               benefit_risk_summary_Africa, 
+                               suspension_period_string, 
+                               age_group = age_group)
     
   } # end -- for (age_group in age_groups)
 
