@@ -1329,15 +1329,15 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
       # map of benefit-risk ratio for different vaccines
       p <- ggplot (data = dt) +
         geom_sf (aes (fill = eval (as.name (br_ratio)), geometry = geometry)) + 
-        # scale_fill_viridis_c (option = "plasma", direction = -1) + 
-        scale_fill_gradient2 (midpoint = 0,
-                              low = "red",
-                              mid = "white",
-                              high = "blue",
-                              na.value = "grey70",
-                              trans = "log",
-                              limits = c (0.5, NA),
-                              breaks = c(0, 0.5, 1, 5, 10, 50, 100)) +
+        scale_fill_viridis_c (option = "plasma", direction = -1, limits = c(0, NA), na.value = "grey80") + 
+        # scale_fill_gradient2 (midpoint = 0,
+        #                       low = "red",
+        #                       mid = "white",
+        #                       high = "blue",
+        #                       na.value = "grey70",
+        #                       trans = "log",
+        #                       limits = c (0.5, NA),
+        #                       breaks = c(0, 0.5, 1, 5, 10, 50, 100)) +
         labs (title = "Deaths averted by vaccination per excess COVID-19 death",  # uncomment this line to generate figures for paper
         # labs (title    = paste0 ("Deaths averted by vaccination per excess COVID-19 death / ", br_ratio),  # comment
               subtitle = paste0 (vaccine), 
@@ -1379,7 +1379,7 @@ source_wd <- getwd ()
 setwd ("../")
 
 set.seed (1)  # seed for random number generator
-psa <- 10   # number of runs for probabilistic sensitivity analysis
+psa <- 1000   # number of runs for probabilistic sensitivity analysis
 
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
