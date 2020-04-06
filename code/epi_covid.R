@@ -145,6 +145,7 @@ add_population <- function (vaccine_coverage) {
 # add deaths averted by vaccination among "all" or "under5" age groups
 deaths_averted_vaccination <- function (vaccine_coverage_pop, 
                                         age_group, 
+                                        suspension_period,
                                         psa) {
   
   # Estimating the health impact of vaccination against 10 pathogens in 98 low 
@@ -229,7 +230,7 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
   }
 
   # estimate deaths averted by each vaccine in each country
-  vaccine_impact [, vac_deaths_averted := (vac_population * mid / 1000)]
+  vaccine_impact [, vac_deaths_averted := (vac_population * mid / 1000) * suspension_period]
   
   # add run id
   vaccine_impact [, run_id := 0]
@@ -271,9 +272,9 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
   
   # update estimates for deaths averted by vaccination
   vaccine_impact_psa [, vac_deaths_averted := 
-                        vac_population * (rlnorm (n       = psa, 
+                        vac_population * ((rlnorm (n       = psa, 
                                                   meanlog = log (mid), 
-                                                  sdlog   = log_ci_se)) / 1000, 
+                                                  sdlog   = log_ci_se)) / 1000) * suspension_period, 
                       by = .(ISO_code, Vaccine) ]
 
   # ----------------------------------------------------------------------------
@@ -774,7 +775,7 @@ benefit_risk_ratio <- function (vaccine_covid_impact,
   for (i in 1:5) {
     
     benefit_risk [, as.character (as.name (br_ratios [i])) := 
-                    (vac_deaths_averted * suspension_period) / eval (as.name (deaths [i]) ) ]
+                    vac_deaths_averted / eval (as.name (deaths [i]) ) ]
   }
 
   return (benefit_risk)
@@ -898,7 +899,7 @@ benefit_risk_ratio_Africa <- function (vaccine_covid_impact,
   for (i in 1:5) {
     
     benefit_risk_Africa [, as.character (as.name (br_ratios [i])) := 
-                           (vac_deaths_averted * suspension_period) / eval (as.name (deaths [i]) ) ]
+                           vac_deaths_averted / eval (as.name (deaths [i]) ) ]
   }
   
   return (benefit_risk_Africa)
@@ -1096,6 +1097,7 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
 save_benefit_risk_results <- function (benefit_risk, 
                                        benefit_risk_summary, 
                                        benefit_risk_summary_Africa, 
+                                       suspension_period,
                                        suspension_period_string, 
                                        age_group) {
 
@@ -1255,11 +1257,74 @@ save_benefit_risk_results <- function (benefit_risk,
                   ".csv"),
           col.names = T, row.names = F)
   # ----------------------------------------------------------------------------
+  
+  # ----------------------------------------------------------------------------
+  # save -- vaccine antigen specific benefits and risks
+  dt <- benefit_risk_summary_Africa [, lapply(.SD, round, 1),
+                                     .SDcols = c("benefit_risk_ratio",
+                                                 "benefit_risk_ratio_low",
+                                                 "benefit_risk_ratio_high", 
+                                                 
+                                                 "vac_deaths_averted",
+                                                 "vac_deaths_averted_low",
+                                                 "vac_deaths_averted_high",
+                                                 
+                                                 "covid_deaths",
+                                                 "covid_deaths_low",
+                                                 "covid_deaths_high"
+                                     ), 
+                                     by = .(Vaccine)]
+
+  # add vaccination schedule
+  dt [, 'Vaccination schedule' := "6, 10, 14 weeks"]
+  dt [Vaccine == "RotaC", 'Vaccination schedule' := "6, 10 weeks"]
+  dt [Vaccine %in% c("MCV1", "RCV1", "MenA", "YFV"), 'Vaccination schedule' := "9 months"]
+  dt [Vaccine == "MCV2", 'Vaccination schedule' := "15-18 months"]
+  dt [Vaccine == c("MCV1, RCV1, MenA, YFV"), 'Vaccination schedule' := "9 months"]
+  dt [Vaccine == c("DTP3, HepB3, Hib3, PCV3, RotaC, MCV1, RCV1, MenA, YFV, MCV2"), 'Vaccination schedule' := "6, 10, 14 weeks; 9 months; 15-18 months"]
+  
+  # order
+  dt [, vaccine_order := c(1, 4, 5, 8, 12, 6, 3, 9, 7, 2,
+                           11, 10, 13, 14, 15)]
+  dt <- dt [order (vaccine_order),]
+  
+  dt [, ':=' ('Deaths averted by vaccination (time since vaccination to 5-years of age)' = paste0 (vac_deaths_averted, " [", 
+                                                                                                   vac_deaths_averted_low, "-",
+                                                                                                   vac_deaths_averted_high, "]"), 
+              
+              'Excess COVID-19 deaths' = paste0 (covid_deaths, " [", 
+                                                 covid_deaths_low, "-",
+                                                 covid_deaths_high, "]"),
+              
+              'Benefit-risk ratio' = paste0 (benefit_risk_ratio, " [", 
+                                             benefit_risk_ratio_low, "-",
+                                             benefit_risk_ratio_high, "]")
+              ) ]
+  
+  # keep requisite columns 
+  dt <- dt [, c("Vaccine", 
+                "Vaccination schedule",
+                "Deaths averted by vaccination (time since vaccination to 5-years of age)",
+                "Excess COVID-19 deaths",
+                "Benefit-risk ratio")]
+  
+  fwrite (dt,
+          paste0 ("tables/Table_benefits_risks_benefit_risk_ratios_summary_Africa_results_", 
+                  suspension_period_string, 
+                  "_suspension_", 
+                  age_group, 
+                  ".csv"),
+          col.names = T, row.names = F)
+  
+  
+  # ----------------------------------------------------------------------------
+  
 
   return ()
 
-} # end of function -- benefit_risk_ratio_map
+} # end of function -- save_benefit_risk_results
 # ------------------------------------------------------------------------------
+
 
 # ------------------------------------------------------------------------------
 # main program 
@@ -1274,7 +1339,7 @@ source_wd <- getwd ()
 setwd ("../")
 
 set.seed (1)  # seed for random number generator
-psa <- 10000  # number of runs for probabilistic sensitivity analysis
+psa <- 2000  # number of runs for probabilistic sensitivity analysis
 
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
@@ -1306,7 +1371,8 @@ for (period in 1:length (suspension_periods)) {
     
     # add deaths averted by vaccination among "all" or "under5" age groups
     vaccine_impact_psa <- deaths_averted_vaccination (vaccine_coverage_pop_hh, 
-                                                      age_group = age_group, 
+                                                      age_group = age_group,
+                                                      suspension_period,
                                                       psa)
     
     # estimate potential deaths due to covid-19 by continuing vaccination programmes
@@ -1357,6 +1423,7 @@ for (period in 1:length (suspension_periods)) {
     save_benefit_risk_results (benefit_risk, 
                                benefit_risk_summary, 
                                benefit_risk_summary_Africa, 
+                               suspension_period,
                                suspension_period_string, 
                                age_group = age_group)
     
