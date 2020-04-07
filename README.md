@@ -1,1 +1,1 @@
-### Health benefits of vaccination and risks of sustaining or suspending immunisation programmes in Africa during the COVID-19 pandemic
+### Risks and benefits of sustaining routine childhood immunisation programmes in Africa during the Covid-19 pandemic
