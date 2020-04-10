@@ -553,25 +553,27 @@ tornado_regression <- function (benefit_risk_Africa,
   para <- merge (foo, bar, by="run_id") # merge
   para <- para %>% select(-1) # remove run_id
 
-
   #tornado plot using linear regression
   
   para_names = c("Benefit risk ratio", "Vaccine deaths averted", "Duration of period at risk of SARS-nCoV-2",
                  "Basic reproduction number for SARS-nCoV-2", "Duration of infectiousness from SARS-nCoV-2",
-                 "Number of non-vaccinator contacts of child and carer during travel to vaccine clinic",
-                 "Risk ratio of vaccinator being infected and infectious vs another community member",
-                 "Risk ratio per potentially infectious contact of a vaccinator transmitting vs another community member",
-                 "Average number of transmission relevant contacts of a community member per day",
+                 "Number of non-vaccinator contacts of child and carer",
+                 "RR of vaccinator being infected and infectious",
+                 "RR of potentially infectious contact of a vaccinator transmitting",
+                 "Transmission relevant contacts of a community member per day",
                  "Infection fatality rate for a child", "Infection fatality rate for an adult", 
                  "Infection fatality rate for an older person")
   
 
   para = subset(para, para[,1]>quantile(para[,1],0.025) & para[,1]<quantile(para[,1],0.975))
 
-  # currently using lm as there rlm complained that number of inputs were too great
-
-  reg.fit <- lm(para[,1] ~ para[,2]+para[,3]+para[,4]+para[,5]+para[,6]+
-                  para[,7]+para[,8]+para[,9]+para[,10]+para[,11]+para[,12])
+  # currently using glm
+  
+  reg.fit <- glm(para[,1] ~ para[,2]+para[,3]+para[,4]+para[,5]+para[,6]+
+                 para[,7]+para[,8]+para[,9]+para[,10]+para[,11]+para[,12], family="poisson")
+  
+  #reg.fit <- lm(para[,1] ~ para[,2]+para[,3]+para[,4]+para[,5]+para[,6]+
+  #                 para[,7]+para[,8]+para[,9]+para[,10]+para[,11]+para[,12])
 
   coeff.regression<-as.vector(reg.fit$coefficients[2:12])
   intercept.regression<-as.vector(reg.fit$coefficients[1])
@@ -585,6 +587,9 @@ tornado_regression <- function (benefit_risk_Africa,
   tornado[,1]<-median.qpp+(param.quantiles[,1]-param.quantiles[,3])*coeff.regression
   tornado[,2]<-median.qpp+(param.quantiles[,2]-param.quantiles[,3])*coeff.regression
 
+  median.qpp <- exp(median.qpp) #comment out if using linear model
+  tornado <- exp(tornado) # comment out if using linear model
+  
   rownames(tornado)=para_names[2:12]
 
   tornado=t(apply(tornado,1,sort))
@@ -594,15 +599,13 @@ tornado_regression <- function (benefit_risk_Africa,
   tornado=tornado[(length(tornado[,1])-11):length(tornado[,1]),]
   tornado2=tornado-median.qpp
 
-  png(file="test_tornado.png",width=1200,height=600)
+  png(file="figures/tornado.png",width=1600,height=800)
 
   layout(matrix(c(2,1,1), 1, 3, byrow = TRUE))
   par(mar=c(5,0,1,1), cex=1.4)
 
-  # barplot(tornado2[,1], width=1, horiz=TRUE, offset=median.qpp, space=0, names.arg="",
-  #         xlim=c(min(tornado[,1]),max(tornado[,2])), xlab="benefit_risk_ratio")
   barplot(tornado2[,1], width=1, horiz=TRUE, offset=median.qpp, space=0, names.arg="",
-          xlim=c(0,max(tornado[,2])), xlab="Benefit risk ratio")
+          xlim=c(50,300), xlab="Benefit risk ratio")
   barplot(tornado2[,2], width=1, horiz=TRUE, add=TRUE, offset=median.qpp, space=0, names.arg="")
   rect(20000, -0.49, 30000, length(tornado[,1])-0.5, col="gray", density=20)
   par(mar=c(5,0,1,0))
