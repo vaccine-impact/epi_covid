@@ -1274,7 +1274,7 @@ source_wd <- getwd ()
 setwd ("../")
 
 set.seed (1)  # seed for random number generator
-psa <- 100  # number of runs for probabilistic sensitivity analysis
+psa <- 50  # number of runs for probabilistic sensitivity analysis
 
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
@@ -1368,7 +1368,7 @@ for (period in 1:length (suspension_periods)) {
 
 # produce tornaao diagram
 
-tornado_regression(benefit_risk_Africa, vaccine_covid_impact)
+fit <- tornado_regression(benefit_risk_Africa, vaccine_covid_impact)
 
 # return to source directory
 setwd (source_wd)
