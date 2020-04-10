@@ -1149,25 +1149,25 @@ save_benefit_risk_results <- function (benefit_risk,
             ), 
             by = .(Country)]
   
-  dt [, ':=' ('Household' = paste0 (comma (benefit_risk_ratio), " [", 
+  dt [, ':=' ('Household' = paste0 (comma (benefit_risk_ratio), " (", 
                                     comma (benefit_risk_ratio_low), "-",
-                                    comma (benefit_risk_ratio_high), "]"), 
+                                    comma (benefit_risk_ratio_high), ")"), 
               
-              'Vaccinated children' = paste0 (comma (child_benefit_risk_ratio), " [", 
+              'Vaccinated children' = paste0 (comma (child_benefit_risk_ratio), " (", 
                                               comma (child_benefit_risk_ratio_low), "-",
-                                              comma (child_benefit_risk_ratio_high), "]"),
+                                              comma (child_benefit_risk_ratio_high), ")"),
               
-              'Siblings' = paste0 (comma (sibling_benefit_risk_ratio), " [", 
+              'Siblings' = paste0 (comma (sibling_benefit_risk_ratio), " (", 
                                    comma (sibling_benefit_risk_ratio_low), "-",
-                                   comma (sibling_benefit_risk_ratio_high), "]"),
+                                   comma (sibling_benefit_risk_ratio_high), ")"),
               
-              'Parents' = paste0 (comma (parent_benefit_risk_ratio), " [", 
+              'Parents' = paste0 (comma (parent_benefit_risk_ratio), " (", 
                                   comma (parent_benefit_risk_ratio_low), "-",
-                                  comma (parent_benefit_risk_ratio_high), "]"),
+                                  comma (parent_benefit_risk_ratio_high), ")"),
               
-              'Grandparents' = paste0 (comma (grandparent_benefit_risk_ratio), " [", 
+              'Grandparents' = paste0 (comma (grandparent_benefit_risk_ratio), " (", 
                                        comma (grandparent_benefit_risk_ratio_low), "-",
-                                       comma (grandparent_benefit_risk_ratio_high), "]")
+                                       comma (grandparent_benefit_risk_ratio_high), ")")
               ) ]
   
   # drop non-requisite columns
@@ -1221,25 +1221,25 @@ save_benefit_risk_results <- function (benefit_risk,
                                                  ), 
                                      by = .(Vaccine)]
   
-  dt [, ':=' ('Household' = paste0 (comma (benefit_risk_ratio), " [", 
+  dt [, ':=' ('Household' = paste0 (comma (benefit_risk_ratio), " (", 
                                     comma (benefit_risk_ratio_low), "-",
-                                    comma (benefit_risk_ratio_high), "]"), 
+                                    comma (benefit_risk_ratio_high), ")"), 
               
-              'Vaccinated children' = paste0 (comma (child_benefit_risk_ratio), " [", 
+              'Vaccinated children' = paste0 (comma (child_benefit_risk_ratio), " (", 
                                               comma (child_benefit_risk_ratio_low), "-",
-                                              comma (child_benefit_risk_ratio_high), "]"),
+                                              comma (child_benefit_risk_ratio_high), ")"),
               
-              'Siblings' = paste0 (comma (sibling_benefit_risk_ratio), " [", 
+              'Siblings' = paste0 (comma (sibling_benefit_risk_ratio), " (", 
                                    comma (sibling_benefit_risk_ratio_low), "-",
-                                   comma (sibling_benefit_risk_ratio_high), "]"),
+                                   comma (sibling_benefit_risk_ratio_high), ")"),
               
-              'Parents' = paste0 (comma (parent_benefit_risk_ratio), " [", 
+              'Parents' = paste0 (comma (parent_benefit_risk_ratio), " (", 
                                   comma (parent_benefit_risk_ratio_low), "-",
-                                  comma (parent_benefit_risk_ratio_high), "]"),
+                                  comma (parent_benefit_risk_ratio_high), ")"),
               
-              'Grandparents' = paste0 (comma (grandparent_benefit_risk_ratio), " [", 
+              'Grandparents' = paste0 (comma (grandparent_benefit_risk_ratio), " (", 
                                        comma (grandparent_benefit_risk_ratio_low), "-",
-                                       comma (grandparent_benefit_risk_ratio_high), "]")
+                                       comma (grandparent_benefit_risk_ratio_high), ")")
               ) ]
   
   # drop non-requisite columns
@@ -1289,17 +1289,17 @@ save_benefit_risk_results <- function (benefit_risk,
                            11, 10, 13, 14, 15)]
   dt <- dt [order (vaccine_order),]
   
-  dt [, ':=' ('Deaths averted by vaccination (time since vaccination to 5-years of age)' = paste0 (comma (vac_deaths_averted), " [", 
+  dt [, ':=' ('Deaths averted by vaccination (time since vaccination to 5-years of age)' = paste0 (comma (vac_deaths_averted), " (", 
                                                                                                    comma (vac_deaths_averted_low), "-",
-                                                                                                   comma (vac_deaths_averted_high), "]"), 
+                                                                                                   comma (vac_deaths_averted_high), ")"), 
               
-              'Excess COVID-19 deaths' = paste0 (comma (covid_deaths), " [", 
+              'Excess COVID-19 deaths' = paste0 (comma (covid_deaths), " (", 
                                                  comma (covid_deaths_low), "-",
-                                                 comma (covid_deaths_high), "]"),
+                                                 comma (covid_deaths_high), ")"),
               
-              'Benefit-risk ratio' = paste0 (comma (benefit_risk_ratio), " [", 
+              'Benefit-risk ratio' = paste0 (comma (benefit_risk_ratio), " (", 
                                              comma (benefit_risk_ratio_low), "-",
-                                             comma (benefit_risk_ratio_high), "]")
+                                             comma (benefit_risk_ratio_high), ")")
   ) ]
   
   # keep requisite columns 
@@ -1340,7 +1340,7 @@ source_wd <- getwd ()
 setwd ("../")
 
 set.seed (1)  # seed for random number generator
-psa <- 2000  # number of runs for probabilistic sensitivity analysis
+psa <- 10  # number of runs for probabilistic sensitivity analysis
 
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
