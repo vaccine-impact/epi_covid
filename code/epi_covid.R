@@ -605,7 +605,7 @@ tornado_regression <- function (benefit_risk_Africa,
   par(mar=c(5,0,1,1), cex=1.4)
 
   barplot(tornado2[,1], width=1, horiz=TRUE, offset=median.qpp, space=0, names.arg="",
-          xlim=c(50,300), xlab="Benefit risk ratio")
+          xlim=c(min(tornado[,1]),max(tornado[,2])), xlab="Benefit risk ratio")
   barplot(tornado2[,2], width=1, horiz=TRUE, add=TRUE, offset=median.qpp, space=0, names.arg="")
   rect(20000, -0.49, 30000, length(tornado[,1])-0.5, col="gray", density=20)
   par(mar=c(5,0,1,0))
