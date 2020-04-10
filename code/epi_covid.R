@@ -1366,9 +1366,8 @@ for (period in 1:length (suspension_periods)) {
 
 } # end -- for (period in 1:length (suspension_periods))
 
-# produce tornaao diagram
-
-tornado_regression(benefit_risk_Africa, vaccine_covid_impact)
+# produce tornado diagram
+tornado_regression (benefit_risk_Africa, vaccine_covid_impact)
 
 # return to source directory
 setwd (source_wd)
