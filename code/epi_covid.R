@@ -566,16 +566,18 @@ tornado_regression <- function (benefit_risk_Africa,
                  "Basic reproduction number for SARS-nCoV-2", 
                  "Duration of infectiousness from SARS-nCoV-2",
                  "Number of non-vaccinator contacts of child and carer",
-                 "RR of vaccinator being infected and infectious",
-                 "RR of potentially infectious contact of a vaccinator transmitting",
+                 # "RR of vaccinator being infected and infectious",
+                 # "RR of potentially infectious contact of a vaccinator transmitting",
+                 "Risk ratio of a vaccinator being infected and \n infectious versus another community member", 
+                 "Risk ratio per potentially infectious contact of a \n vaccinator transmitting versus another community member", 
                  "Transmission relevant contacts of a community member per day",
                  "Infection fatality rate for a child", 
                  "Infection fatality rate for an adult", 
                  "Infection fatality rate for an older person")
   
   para = subset (para, 
-                 para [, 1]  > quantile (para [, 1], 0.025) & 
-                   para[, 1] < quantile (para [, 1], 0.975)
+                   para [, 1] > quantile (para [, 1], 0.025) & 
+                   para [, 1] < quantile (para [, 1], 0.975)
                  )
 
   # currently using glm
@@ -607,8 +609,8 @@ tornado_regression <- function (benefit_risk_Africa,
   }
 
   median.qpp   <- intercept.regression + sum( coeff.regression * param.quantiles [,3])
-  tornado [,1] <- median.qpp + (param.quantiles[,1] - param.quantiles[,3]) * coeff.regression
-  tornado [,2] <- median.qpp + (param.quantiles[,2] - param.quantiles[,3]) * coeff.regression
+  tornado [,1] <- median.qpp + (param.quantiles [,1] - param.quantiles [,3]) * coeff.regression
+  tornado [,2] <- median.qpp + (param.quantiles [,2] - param.quantiles [,3]) * coeff.regression
 
   median.qpp <- exp (median.qpp) # comment out if using linear model
   tornado    <- exp (tornado)    # comment out if using linear model
@@ -616,18 +618,18 @@ tornado_regression <- function (benefit_risk_Africa,
   rownames (tornado) <- para_names [2:12]
 
   tornado <- t (apply (tornado, 1, sort))
-  tornado <- cbind (tornado[,1], tornado[,2]) [order(tornado[,2] - tornado[,1]), ] #sort
-  tornado
+  tornado <- cbind (tornado [, 1], tornado [, 2]) [order(tornado [, 2] - tornado [, 1]), ] # sort
+  # tornado
 
-  tornado  <- tornado [(length (tornado[,1])-11):length(tornado[,1]), ]
+  tornado  <- tornado [(length (tornado [, 1]) - 11):length(tornado [, 1]), ]
   tornado2 <- tornado - median.qpp
 
   # ----------------------------------------------------------------------------
   # tornado plot
-  png (file = "figures/tornado.png", width = 1600, height = 800)
+  png (file = "figures/tornado.png", width = 1650, height = 800)
   
   layout (matrix (c(2,1,1), 1, 3, byrow = TRUE))
-  par (mar = c(5,0,1,1), cex = 1.4)
+  par (mar = c(5, 0, 1, 1), cex = 1.5)
   
   barplot (tornado2 [,1], 
            width     = 1, 
@@ -636,7 +638,8 @@ tornado_regression <- function (benefit_risk_Africa,
            space     = 0, 
            names.arg = "",
            xlim      = c(min (tornado [, 1]), max (tornado [, 2])), 
-           xlab      = "Benefit risk ratio")
+           xlab      = "Benefit risk ratio", 
+           col       = "#92C5DE")
   
   barplot (tornado2 [, 2], 
            width     = 1, 
@@ -644,11 +647,12 @@ tornado_regression <- function (benefit_risk_Africa,
            add       = TRUE, 
            offset    = median.qpp, 
            space     = 0, 
-           names.arg = "")
+           names.arg = "", 
+           col       = "#92C5DE")
   
   rect (20000, -0.49, 30000, length (tornado[,1])-0.5, col = "gray", density = 20)
   
-  par (mar = c(5, 0,1, 0))
+  par (mar = c(5, 0, 1, 0))
   
   plot (0, 0, type="c",
         xlim  = c (0, 1),
@@ -661,7 +665,8 @@ tornado_regression <- function (benefit_risk_Africa,
   text (x      = 1, 
         y      = seq (length (tornado [,1]) - 0.5, 0.5), 
         labels = rev (rownames (tornado)), 
-        pos    = 2)
+        pos    = 2, 
+        cex    = 1)
   
   dev.off ()  # save tornado plot
   # ----------------------------------------------------------------------------
@@ -1341,7 +1346,7 @@ source_wd <- getwd ()
 setwd ("../")
 
 set.seed (1)  # seed for random number generator
-psa <- 10  # number of runs for probabilistic sensitivity analysis
+psa <- 50  # number of runs for probabilistic sensitivity analysis
 
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
