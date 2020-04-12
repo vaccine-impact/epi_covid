@@ -22,3 +22,4 @@ get.beta.par(p,ifr_age_60_70)
 get.gamma.par(p,ifr_age_0_9, tol=0.01)
 get.gamma.par(p,ifr_age_20_30)
 get.gamma.par(p,ifr_age_60_70)
+

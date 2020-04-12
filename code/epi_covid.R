@@ -203,13 +203,12 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
 
     # proxy estimate of lower 95% credible interval of vaccine impact
     vaccine_impact [is.na(low) & Vaccine == vaccine,
-                    low := mean (vaccine_impact [!is.na (low) & Vaccine == vaccine, low/mid] ) * mid ]
+                    low := mean (vaccine_impact [!is.na (low) & Vaccine == vaccine, low/mid], na.rm = TRUE) * mid ]
 
     vaccine_impact [is.na(high) & Vaccine == vaccine,
-                    high := mean (vaccine_impact [!is.na (high) & Vaccine == vaccine, high/mid] ) * mid ]
+                    high := mean (vaccine_impact [!is.na (high) & Vaccine == vaccine, high/mid], na.rm = TRUE) * mid ]
 
     # proxy estimate of upper 95% credible interval of vaccine impact
-
   }
   # ----------------------------------------------------------------------------
 
@@ -234,7 +233,20 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
 
   # estimate deaths averted by each vaccine in each country
   vaccine_impact [, vac_deaths_averted := (vac_population * mid / 1000) * suspension_period]
-
+  
+  # ----------------------------------------------------------------------------
+  # minor changes to fit lognormal distribution
+  #
+  # drop rows with zero vaccine impact (Eswatini for RCV1)
+  vaccine_impact <- vaccine_impact [!(low == 0 & mid == 0 & high == 0)]
+  
+  # add a small 0.25% value to higher bounds where higher bound equals mid value (1 row -- Egypt/HepB3)
+  vaccine_impact [mid == high, high := high * 1.0025]
+  
+  # add a small value to zero values to avoid log(0) = -Inf
+  vaccine_impact [low == 0, low := 1e-6]
+  # ----------------------------------------------------------------------------
+  
   # add run id
   vaccine_impact [, run_id := 0]
 
@@ -250,11 +262,24 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
   # ----------------------------------------------------------------------------
   # probabilistic sensitivity analysis
 
-  # add a small value to zero values to avoid log(0) = -Inf
-  vaccine_impact [low == 0, low := 1e-6]
-
   # estimate standard error in log scale for deaths averted per 1000 vaccinated individuals
-  vaccine_impact [, log_ci_se := (log (high) - log (low)) / 3.92]
+  # vaccine_impact [, log_ci_se := (log (high) - log (low)) / 3.92]
+  
+  # estimate standard deviation in log scale for deaths averted per 1000 vaccinated individuals
+  # mean is also estimates in log scale (~ mid value in log scale)
+
+  vaccine_impact [, sd_log := suppressMessages (suppressWarnings (get.lnorm.par (p = c (0.025, 0.5, 0.975), 
+                                             q = c (low, mid, high), 
+                                             show.output = FALSE,
+                                             plot        = FALSE) ["sdlog"]) ), 
+                  by = .(ISO_code, Vaccine)]
+  
+  vaccine_impact [, mean_log := suppressMessages (suppressWarnings (get.lnorm.par (p = c (0.025, 0.5, 0.975), 
+                                               q = c (low, mid, high), 
+                                               show.output = FALSE,
+                                               plot        = FALSE) ["meanlog"]) ), 
+                  by = .(ISO_code, Vaccine)]
+
 
   # initialise psa data table
   vaccine_impact_psa <- vaccine_impact [0, ]
@@ -274,11 +299,22 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
   }
 
   # update estimates for deaths averted by vaccination
+  # note: mean_log is same value for a given ISO_code and Vaccine (similary for sd_log)
+  # which is why mean (mean_log) is done to get one value
+  # rlnorm will generate 'psa' number of values
   vaccine_impact_psa [, vac_deaths_averted :=
-                        vac_population * ((rlnorm (n       = psa,
-                                                  meanlog = log (mid),
-                                                  sdlog   = log_ci_se)) / 1000) * suspension_period,
+                        vac_population * ((rlnorm (n      = psa,
+                                                  meanlog = mean (mean_log),
+                                                  sdlog   = mean (sd_log) )
+                                           ) / 1000) * suspension_period,
                       by = .(ISO_code, Vaccine) ]
+  
+  # # update estimates for deaths averted by vaccination
+  # vaccine_impact_psa [, vac_deaths_averted :=
+  #                       vac_population * ((rlnorm (n       = psa,
+  #                                                  meanlog = log (mid),
+  #                                                  sdlog   = log_ci_se)) / 1000) * suspension_period,
+  #                     by = .(ISO_code, Vaccine) ]
 
   # ----------------------------------------------------------------------------
 
@@ -1396,7 +1432,7 @@ source_wd <- getwd ()
 setwd ("../")
 
 set.seed (1)  # seed for random number generator
-psa <- 50  # number of runs for probabilistic sensitivity analysis
+psa <- 2000   # number of runs for probabilistic sensitivity analysis
 
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
