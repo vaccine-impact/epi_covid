@@ -10,9 +10,11 @@ library (data.table)
 library (ggplot2)
 library (rnaturalearth)
 library (rnaturalearthdata)
+library (rriskDistributions)
 library (scales)
 library (tictoc)
 library (tidyverse)
+
 
 # remove all objects from workspace
 rm (list = ls ())
@@ -1295,24 +1297,24 @@ save_benefit_risk_results <- function (benefit_risk,
                            11, 10, 13, 14, 15)]
   dt <- dt [order (vaccine_order),]
 
-  dt [, ':=' ('Deaths averted by vaccination (time since vaccination to 5-years of age)' = paste0 (comma (vac_deaths_averted), " (",
-                                                                                                   comma (vac_deaths_averted_low), "-",
-                                                                                                   comma (vac_deaths_averted_high), ")"),
-
-              'Excess COVID-19 deaths' = paste0 (comma (covid_deaths), " (",
+  dt [, ':=' ('Deaths averted by vaccination' = paste0 (comma (vac_deaths_averted), " (",
+                                                        comma (vac_deaths_averted_low), "-",
+                                                        comma (vac_deaths_averted_high), ")"),
+              
+              'Excess Covid-19 deaths' = paste0 (comma (covid_deaths), " (",
                                                  comma (covid_deaths_low), "-",
                                                  comma (covid_deaths_high), ")"),
-
+              
               'Benefit-risk ratio' = paste0 (comma (benefit_risk_ratio), " (",
                                              comma (benefit_risk_ratio_low), "-",
                                              comma (benefit_risk_ratio_high), ")")
-  ) ]
+              ) ]
 
   # keep requisite columns
   dt <- dt [, c("Vaccine",
                 "Vaccination schedule",
-                "Deaths averted by vaccination (time since vaccination to 5-years of age)",
-                "Excess COVID-19 deaths",
+                "Deaths averted by vaccination",
+                "Excess Covid-19 deaths",
                 "Benefit-risk ratio")]
 
   fwrite (dt,
@@ -1324,6 +1326,54 @@ save_benefit_risk_results <- function (benefit_risk,
           col.names = T, row.names = F)
 
 
+  # ----------------------------------------------------------------------------
+  
+  # ----------------------------------------------------------------------------
+  # save -- combined vaccine benefits and risks at country level
+  dt <- benefit_risk_summary [Vaccine == "DTP3, HepB3, Hib3, PCV3, RotaC, MCV1, RCV1, MenA, YFV, MCV2", 
+                              lapply (.SD, round, 1),
+                              .SDcols = c("benefit_risk_ratio",
+                                          "benefit_risk_ratio_low",
+                                          "benefit_risk_ratio_high",
+                                          
+                                          "vac_deaths_averted",
+                                          "vac_deaths_averted_low",
+                                          "vac_deaths_averted_high",
+                                          
+                                          "covid_deaths",
+                                          "covid_deaths_low",
+                                          "covid_deaths_high"
+                              ),
+                              by = .(Country)]
+  
+  dt [, ':=' ('Deaths averted by vaccination' = paste0 (comma (vac_deaths_averted), " (",
+                                                        comma (vac_deaths_averted_low), "-",
+                                                        comma (vac_deaths_averted_high), ")"),
+              
+              'Excess Covid-19 deaths' = paste0 (comma (covid_deaths), " (",
+                                                 comma (covid_deaths_low), "-",
+                                                 comma (covid_deaths_high), ")"),
+              
+              'Benefit-risk ratio' = paste0 (comma (benefit_risk_ratio), " (",
+                                             comma (benefit_risk_ratio_low), "-",
+                                             comma (benefit_risk_ratio_high), ")")
+              ) ]
+  
+  # keep requisite columns
+  dt <- dt [, c("Country",
+                "Deaths averted by vaccination",
+                "Excess Covid-19 deaths",
+                "Benefit-risk ratio")]
+  
+  fwrite (dt,
+          paste0 ("tables/Table_benefits_risks_benefit_risk_ratios_summary_country_level_results_",
+                  suspension_period_string,
+                  "_suspension_",
+                  age_group,
+                  ".csv"),
+          col.names = T, row.names = F)
+  
+  
   # ----------------------------------------------------------------------------
 
 
