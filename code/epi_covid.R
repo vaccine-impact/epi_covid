@@ -542,78 +542,131 @@ tornado_regression <- function (benefit_risk_Africa,
 
   # overall vaccine deaths averted and benefit risk ratio for each psa run
   foo <- benefit_risk_Africa %>%
-    dplyr::filter(Vaccine == "DTP3, HepB3, Hib3, PCV3, RotaC, MCV1, RCV1, MenA, YFV, MCV2") %>%
-    dplyr::select_at(c("run_id","benefit_risk_ratio","vac_deaths_averted"))
+    dplyr::filter (Vaccine == "DTP3, HepB3, Hib3, PCV3, RotaC, MCV1, RCV1, MenA, YFV, MCV2") %>%
+    dplyr::select_at (c("run_id","benefit_risk_ratio","vac_deaths_averted"))
 
+  # # parameters for covid impact psa
+  # bar <- vaccine_covid_impact %>%
+  #   dplyr::group_by (run_id) %>%
+  #   dplyr::select ("run_id" | starts_with ("param")) %>% distinct()
+  
   # parameters for covid impact psa
   bar <- vaccine_covid_impact %>%
-    dplyr::group_by(run_id) %>%
-    dplyr::select("run_id" | starts_with("param")) %>% distinct()
+    dplyr::group_by (run_id) %>%
+    dplyr::select ("run_id", starts_with ("param")) %>% distinct()
 
-  para <- merge (foo, bar, by="run_id") # merge
-  para <- para %>% select(-1) # remove run_id
+  para <- merge (foo, bar, by = "run_id") # merge
+  para <- para %>% select (-1) # remove run_id
 
-  #tornado plot using linear regression
+  # tornado plot using linear regression
   
-  para_names = c("Benefit risk ratio", "Vaccine deaths averted", "Duration of period at risk of SARS-nCoV-2",
-                 "Basic reproduction number for SARS-nCoV-2", "Duration of infectiousness from SARS-nCoV-2",
+  para_names = c("Benefit risk ratio", 
+                 "Vaccine deaths averted", 
+                 "Duration of period at risk of SARS-nCoV-2",
+                 "Basic reproduction number for SARS-nCoV-2", 
+                 "Duration of infectiousness from SARS-nCoV-2",
                  "Number of non-vaccinator contacts of child and carer",
                  "RR of vaccinator being infected and infectious",
                  "RR of potentially infectious contact of a vaccinator transmitting",
                  "Transmission relevant contacts of a community member per day",
-                 "Infection fatality rate for a child", "Infection fatality rate for an adult", 
+                 "Infection fatality rate for a child", 
+                 "Infection fatality rate for an adult", 
                  "Infection fatality rate for an older person")
   
-
-  para = subset(para, para[,1]>quantile(para[,1],0.025) & para[,1]<quantile(para[,1],0.975))
+  para = subset (para, 
+                 para [, 1]  > quantile (para [, 1], 0.025) & 
+                   para[, 1] < quantile (para [, 1], 0.975)
+                 )
 
   # currently using glm
   
-  reg.fit <- glm(para[,1] ~ para[,2]+para[,3]+para[,4]+para[,5]+para[,6]+
-                 para[,7]+para[,8]+para[,9]+para[,10]+para[,11]+para[,12], family="poisson")
+  reg.fit <- glm (para[,1] ~ para [, 2] + 
+                    para [, 3]  + 
+                    para [, 4]  + 
+                    para [, 5]  + 
+                    para [, 6]  +
+                    para [, 7]  + 
+                    para [, 8]  + 
+                    para [, 9]  + 
+                    para [, 10] +
+                    para [, 11] +
+                    para [, 12], 
+                  family = "poisson")
   
-  #reg.fit <- lm(para[,1] ~ para[,2]+para[,3]+para[,4]+para[,5]+para[,6]+
+  # reg.fit <- lm(para[,1] ~ para[,2]+para[,3]+para[,4]+para[,5]+para[,6]+
   #                 para[,7]+para[,8]+para[,9]+para[,10]+para[,11]+para[,12])
 
-  coeff.regression<-as.vector(reg.fit$coefficients[2:12])
-  intercept.regression<-as.vector(reg.fit$coefficients[1])
+  coeff.regression     <- as.vector (reg.fit$coefficients [2:12])
+  intercept.regression <- as.vector (reg.fit$coefficients [1])
 
-  param.quantiles<-matrix(NA,ncol=3,nrow=11)
-  tornado<-matrix(NA,ncol=2,nrow=11)
+  param.quantiles <- matrix (NA, ncol = 3, nrow = 11)
+  tornado         <- matrix (NA, ncol = 2, nrow = 11)
 
-  for(i in 2:12) param.quantiles[i-1,]<-quantile(para[,i],c(0.025,0.975,0.5))
+  for (i in 2:12) {
+    param.quantiles [i-1, ] <- quantile (para [, i], c(0.025, 0.975, 0.5))
+  }
 
-  median.qpp<-intercept.regression+sum(coeff.regression*param.quantiles[,3])
-  tornado[,1]<-median.qpp+(param.quantiles[,1]-param.quantiles[,3])*coeff.regression
-  tornado[,2]<-median.qpp+(param.quantiles[,2]-param.quantiles[,3])*coeff.regression
+  median.qpp   <- intercept.regression + sum( coeff.regression * param.quantiles [,3])
+  tornado [,1] <- median.qpp + (param.quantiles[,1] - param.quantiles[,3]) * coeff.regression
+  tornado [,2] <- median.qpp + (param.quantiles[,2] - param.quantiles[,3]) * coeff.regression
 
-  median.qpp <- exp(median.qpp) #comment out if using linear model
-  tornado <- exp(tornado) # comment out if using linear model
+  median.qpp <- exp (median.qpp) # comment out if using linear model
+  tornado    <- exp (tornado)    # comment out if using linear model
   
-  rownames(tornado)=para_names[2:12]
+  rownames (tornado) <- para_names [2:12]
 
-  tornado=t(apply(tornado,1,sort))
-  tornado=cbind(tornado[,1],tornado[,2])[order(tornado[,2]-tornado[,1]),] #sort
+  tornado <- t (apply (tornado, 1, sort))
+  tornado <- cbind (tornado[,1], tornado[,2]) [order(tornado[,2] - tornado[,1]), ] #sort
   tornado
 
-  tornado=tornado[(length(tornado[,1])-11):length(tornado[,1]),]
-  tornado2=tornado-median.qpp
+  tornado  <- tornado [(length (tornado[,1])-11):length(tornado[,1]), ]
+  tornado2 <- tornado - median.qpp
 
-  png(file="figures/tornado.png",width=1600,height=800)
-
-  layout(matrix(c(2,1,1), 1, 3, byrow = TRUE))
-  par(mar=c(5,0,1,1), cex=1.4)
-
-  barplot(tornado2[,1], width=1, horiz=TRUE, offset=median.qpp, space=0, names.arg="",
-          xlim=c(min(tornado[,1]),max(tornado[,2])), xlab="Benefit risk ratio")
-  barplot(tornado2[,2], width=1, horiz=TRUE, add=TRUE, offset=median.qpp, space=0, names.arg="")
-  rect(20000, -0.49, 30000, length(tornado[,1])-0.5, col="gray", density=20)
-  par(mar=c(5,0,1,0))
-  plot(0,0, type="c",xlim=c(0,1),ylim=c(0,length(tornado[,1])),frame=FALSE,axes=FALSE, xlab="", ylab="")
-  text(x=1, y=seq(length(tornado[,1])-0.5,0.5), labels=rev(rownames(tornado)), pos=2)
-  dev.off()
-
-  return(reg.fit)
+  # ----------------------------------------------------------------------------
+  # tornado plot
+  png (file = "figures/tornado.png", width = 1600, height = 800)
+  
+  layout (matrix (c(2,1,1), 1, 3, byrow = TRUE))
+  par (mar = c(5,0,1,1), cex = 1.4)
+  
+  barplot (tornado2 [,1], 
+           width     = 1, 
+           horiz     = TRUE, 
+           offset    = median.qpp, 
+           space     = 0, 
+           names.arg = "",
+           xlim      = c(min (tornado [, 1]), max (tornado [, 2])), 
+           xlab      = "Benefit risk ratio")
+  
+  barplot (tornado2 [, 2], 
+           width     = 1, 
+           horiz     = TRUE, 
+           add       = TRUE, 
+           offset    = median.qpp, 
+           space     = 0, 
+           names.arg = "")
+  
+  rect (20000, -0.49, 30000, length (tornado[,1])-0.5, col = "gray", density = 20)
+  
+  par (mar = c(5, 0,1, 0))
+  
+  plot (0, 0, type="c",
+        xlim  = c (0, 1),
+        ylim  = c (0, length(tornado [, 1])),
+        frame = FALSE,
+        axes  = FALSE, 
+        xlab  = "", 
+        ylab  = "")
+  
+  text (x      = 1, 
+        y      = seq (length (tornado [,1]) - 0.5, 0.5), 
+        labels = rev (rownames (tornado)), 
+        pos    = 2)
+  
+  dev.off ()  # save tornado plot
+  # ----------------------------------------------------------------------------
+  
+  return (reg.fit)
 
 } # end of function -- tornado_regression
 # ------------------------------------------------------------------------------
@@ -1288,7 +1341,7 @@ source_wd <- getwd ()
 setwd ("../")
 
 set.seed (1)  # seed for random number generator
-psa <- 2000  # number of runs for probabilistic sensitivity analysis
+psa <- 10  # number of runs for probabilistic sensitivity analysis
 
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
@@ -1381,7 +1434,7 @@ for (period in 1:length (suspension_periods)) {
 } # end -- for (period in 1:length (suspension_periods))
 
 # produce tornado diagram
-fit <- tornado_regression(benefit_risk_Africa, vaccine_covid_impact)
+fit <- tornado_regression (benefit_risk_Africa, vaccine_covid_impact)
 
 # return to source directory
 setwd (source_wd)
