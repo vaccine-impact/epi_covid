@@ -1431,7 +1431,7 @@ tic ()
 source_wd <- getwd ()
 setwd ("../")
 
-set.seed (2)  # seed for random number generator
+set.seed (1)  # seed for random number generator
 psa <- 4000   # number of runs for probabilistic sensitivity analysis
 
 # potential delay or suspension period of EPI due to COVID-19
