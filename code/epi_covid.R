@@ -599,7 +599,7 @@ tornado_regression <- function (benefit_risk_Africa,
   # tornado plot using linear regression
   
   para_names = c("Benefit risk ratio", 
-                 "Vaccine deaths averted", 
+                 "Child deaths averted by routine immunisation", 
                  "Duration of period at risk of SARS-nCoV-2",
                  "Basic reproduction number for SARS-nCoV-2", 
                  "Duration of infectiousness from SARS-nCoV-2",
@@ -669,7 +669,7 @@ tornado_regression <- function (benefit_risk_Africa,
   layout (matrix (c(2,1,1), 1, 3, byrow = TRUE))
   par (mar = c(5, 0, 1, 1), cex = 1.5)
   
-  barplot (tornado2 [,1], 
+  barplot (tornado2 [, 1], 
            width     = 1, 
            horiz     = TRUE, 
            offset    = median.qpp, 
@@ -1124,7 +1124,20 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
 
 
       print (p)
-
+      
+      # --------------------------------------------------------------------------
+      # save figure in eps format for paper 
+      if ((br_ratio == "benefit_risk_ratio") & 
+          (vaccine == "DTP3, HepB3, Hib3, PCV3, RotaC, MCV1, RCV1, MenA, YFV, MCV2")) {
+        
+        p <- p + labs (title = NULL, subtitle = NULL)
+        
+        ggsave (filename = "figures/Figure-benefit-risk-ratio.eps",
+                plot = p) 
+        # width = 6, height = 9.5, units="in")
+      }
+      # --------------------------------------------------------------------------
+      
     } # end -- for (vaccine in vaccines)
 
   } # end -- for (br_ratio in br_ratios)
