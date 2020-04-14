@@ -1486,7 +1486,7 @@ source_wd <- getwd ()
 setwd ("../")
 
 set.seed (1)  # seed for random number generator
-psa <- 1000   # number of runs for probabilistic sensitivity analysis
+psa <- 4000   # number of runs for probabilistic sensitivity analysis
 
 suspension_periods        <- c ( 6/12)  # unit in year
 suspension_period_strings <- c ("6 months")
@@ -1497,7 +1497,7 @@ suspension_period_strings <- c ("6 months")
 
 # ------------------------------------------------------------------------------
 # pessimistic measles scenario
-run_measles_scenario <- TRUE
+run_measles_scenario <- FALSE
 outbreak_chance      <- 0.25  # 25%
 reduced_transmission <- 0.5   # 50% (social distancing will increase inter-pandemic period)
 # ------------------------------------------------------------------------------
