@@ -1434,6 +1434,39 @@ save_benefit_risk_results <- function (benefit_risk,
 
 
 # ------------------------------------------------------------------------------
+# adjust vaccine impact estimates for pessimistic measles scenario
+# ------------------------------------------------------------------------------
+measles_scenario <- function (vaccine_impact_psa, 
+                              suspension_period, 
+                              outbreak_chance) {
+
+  # time since vaccination to 5 years of age
+  # mcv1 vaccination at 9 months of age
+  # mcv2 vaccination at 15-18 months of age
+  impact_period_mcv1 <- (60 - 9)         / 12
+  impact_period_mcv2 <- (60 - (15+18)/2) / 12
+  
+  # adjustment factors of vaccine impact
+  adjustment_mcv1 = (suspension_period / impact_period_mcv1) * outbreak_chance
+  adjustment_mcv2 = (suspension_period / impact_period_mcv2) * outbreak_chance
+  
+  # adjust vaccine impact
+  vaccine_impact_psa [!(Vaccine == "MCV1" | Vaccine == "MCV2"), 
+                      vac_deaths_averted := 0]
+  
+  vaccine_impact_psa [Vaccine == "MCV1", 
+                      vac_deaths_averted := vac_deaths_averted * adjustment_mcv1]
+  
+  vaccine_impact_psa [Vaccine == "MCV2", 
+                      vac_deaths_averted := vac_deaths_averted * adjustment_mcv2]
+  
+  return (vaccine_impact_psa)
+
+} # end of function -- measles_scenario
+# ------------------------------------------------------------------------------
+
+
+# ------------------------------------------------------------------------------
 # main program
 # ------------------------------------------------------------------------------
 
@@ -1446,17 +1479,20 @@ source_wd <- getwd ()
 setwd ("../")
 
 set.seed (1)  # seed for random number generator
-psa <- 50   # number of runs for probabilistic sensitivity analysis
+psa <- 1000   # number of runs for probabilistic sensitivity analysis
 
 suspension_periods        <- c ( 6/12)  # unit in year
 suspension_period_strings <- c ("6 months")
 
-# pessimistic measles scenario
-measles_scenario <- FALSE
-
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
 # suspension_period_strings <- c ("3 months", "6 months", "12 months")
+
+# ------------------------------------------------------------------------------
+# pessimistic measles scenario
+run_measles_scenario <- TRUE
+outbreak_chance      <- 0.25  # 25%
+# ------------------------------------------------------------------------------
 
 for (period in 1:length (suspension_periods)) {
 
@@ -1484,6 +1520,14 @@ for (period in 1:length (suspension_periods)) {
                                                       age_group = age_group,
                                                       suspension_period,
                                                       psa)
+    
+    # adjust vaccine impact estimates for pessimistic measles scenario
+    if (run_measles_scenario) {
+      
+      vaccine_impact_psa <- measles_scenario (vaccine_impact_psa, 
+                                              suspension_period, 
+                                              outbreak_chance)
+    }
 
     # estimate potential deaths due to covid-19 by continuing vaccination programmes
     vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact_psa,
