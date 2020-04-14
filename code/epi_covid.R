@@ -1037,9 +1037,10 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
   # benefit_risk_ratio titles
   br_ratio_title <- c ("Benefit-risk ratio (household)",
                        "Benefit-risk ratio (vaccinated children)",
-                       "Benefit-risk ratio (siblings)",
-                       "Benefit-risk ratio (parents)",
-                       "Benefit-risk ratio (grandparents)")
+                       "Benefit-risk ratio (siblings aged below 20 years)",
+                       "Benefit-risk ratio (adults aged 20-60 years)",
+                       "Benefit-risk ratio (older adults aged above 60 years)"
+                       )
 
   i <- 0  # counter for benefit_risk_ratio titles
 
@@ -1117,8 +1118,8 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
         theme (axis.text.x      = element_blank(), axis.ticks = element_blank()) +
         theme (axis.text.y      = element_blank(), axis.ticks = element_blank()) +
         theme (panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
-        theme (plot.title       = element_text (size = 11)) +
-        theme (plot.subtitle    = element_text (size = 10)) +
+        theme (plot.title       = element_text (size = 9)) +
+        theme (plot.subtitle    = element_text (size = 9)) +
         theme (legend.title     = element_text (size = 10)) +
         theme (legend.text      = element_text (size = 7))
 
@@ -1445,14 +1446,17 @@ source_wd <- getwd ()
 setwd ("../")
 
 set.seed (1)  # seed for random number generator
-psa <- 4000   # number of runs for probabilistic sensitivity analysis
+psa <- 50   # number of runs for probabilistic sensitivity analysis
+
+suspension_periods        <- c ( 6/12)  # unit in year
+suspension_period_strings <- c ("6 months")
+
+# pessimistic measles scenario
+measles_scenario <- FALSE
 
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
 # suspension_period_strings <- c ("3 months", "6 months", "12 months")
-
-suspension_periods        <- c ( 6/12)  # unit in year
-suspension_period_strings <- c ("6 months")
 
 for (period in 1:length (suspension_periods)) {
 
