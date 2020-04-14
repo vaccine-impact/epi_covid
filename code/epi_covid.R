@@ -1438,17 +1438,24 @@ save_benefit_risk_results <- function (benefit_risk,
 # ------------------------------------------------------------------------------
 measles_scenario <- function (vaccine_impact_psa, 
                               suspension_period, 
-                              outbreak_chance) {
+                              outbreak_chance,
+                              reduced_transmission) {
 
+  # reduced transmission due to social distancing will increase the inter-pandemic 
+  # period. Hence it will decrease the chance of an outbreak - hence we could 
+  # assume that it will further half the chance of an outbreak
+  
   # time since vaccination to 5 years of age
   # mcv1 vaccination at 9 months of age
   # mcv2 vaccination at 15-18 months of age
-  impact_period_mcv1 <- (60 - 9)         / 12
-  impact_period_mcv2 <- (60 - (15+18)/2) / 12
+  # impact_period_mcv1 <- (60 - 9)         / 12
+  # impact_period_mcv2 <- (60 - (15+18)/2) / 12
   
   # adjustment factors of vaccine impact
-  adjustment_mcv1 = (suspension_period / impact_period_mcv1) * outbreak_chance
-  adjustment_mcv2 = (suspension_period / impact_period_mcv2) * outbreak_chance
+  # adjustment_mcv1 = (suspension_period / impact_period_mcv1) * outbreak_chance
+  # adjustment_mcv2 = (suspension_period / impact_period_mcv2) * outbreak_chance
+  adjustment_mcv1 = outbreak_chance * reduced_transmission
+  adjustment_mcv2 = outbreak_chance * reduced_transmission
   
   # adjust vaccine impact
   vaccine_impact_psa [!(Vaccine == "MCV1" | Vaccine == "MCV2"), 
@@ -1492,6 +1499,7 @@ suspension_period_strings <- c ("6 months")
 # pessimistic measles scenario
 run_measles_scenario <- TRUE
 outbreak_chance      <- 0.25  # 25%
+reduced_transmission <- 0.5   # 50% (social distancing will increase inter-pandemic period)
 # ------------------------------------------------------------------------------
 
 for (period in 1:length (suspension_periods)) {
@@ -1526,7 +1534,8 @@ for (period in 1:length (suspension_periods)) {
       
       vaccine_impact_psa <- measles_scenario (vaccine_impact_psa, 
                                               suspension_period, 
-                                              outbreak_chance)
+                                              outbreak_chance, 
+                                              reduced_transmission)
     }
 
     # estimate potential deaths due to covid-19 by continuing vaccination programmes
