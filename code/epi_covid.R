@@ -603,15 +603,32 @@ tornado_regression <- function (benefit_risk_Africa,
                  "Duration of period at risk of SARS-nCoV-2",
                  "Basic reproduction number for SARS-nCoV-2", 
                  "Duration of infectiousness from SARS-nCoV-2",
-                 "Number of non-vaccinator contacts of child and carer",
+                 "Number of non-vaccinator contacts \n of child and carer",
                  # "RR of vaccinator being infected and infectious",
                  # "RR of potentially infectious contact of a vaccinator transmitting",
-                 "Risk ratio of a vaccinator being infected and \n infectious versus another community member", 
-                 "Risk ratio per potentially infectious contact of a \n vaccinator transmitting versus another community member", 
-                 "Transmission relevant contacts of a community member per day",
-                 "Infection fatality rate for a child", 
-                 "Infection fatality rate for an adult", 
-                 "Infection fatality rate for an older person")
+                 "Risk ratio of vaccinator being infected and \n infectious versus community member", 
+                 "Risk ratio per potentially infectious contact of \n vaccinator transmitting vs community member", 
+                 "Transmission relevant contacts of \n community member per day",
+                 "Infection fatality rate for children", 
+                 "Infection fatality rate for adults", 
+                 "Infection fatality rate for older adults" 
+                 )
+  
+  
+  # para_names = c("Benefit risk ratio", 
+  #                "Child deaths averted by routine immunisation", 
+  #                "Duration of period at risk of SARS-nCoV-2",
+  #                "Basic reproduction number for SARS-nCoV-2", 
+  #                "Duration of infectiousness from SARS-nCoV-2",
+  #                "Number of non-vaccinator contacts of child and carer",
+  #                # "RR of vaccinator being infected and infectious",
+  #                # "RR of potentially infectious contact of a vaccinator transmitting",
+  #                "Risk ratio of vaccinator being infected and infectious vs community member", 
+  #                "Risk ratio per infectious contact of vaccinator transmitting vs community member", 
+  #                "Transmission relevant contacts of a community member per day",
+  #                "Infection fatality rate for a child", 
+  #                "Infection fatality rate for an adult", 
+  #                "Infection fatality rate for an older person")
   
   para = subset (para, 
                    para [, 1] > quantile (para [, 1], 0.025) & 
@@ -664,29 +681,34 @@ tornado_regression <- function (benefit_risk_Africa,
 
   # ----------------------------------------------------------------------------
   # tornado plot
-  png (file = "figures/tornado.png", width = 1650, height = 800)
+  # png (file = "figures/tornado.png", width = 3300, height = 1750)
+  setEPS ()
+  postscript (file = "figures/tornado.eps", width = 50, height = 26)
   
   layout (matrix (c(2,1,1), 1, 3, byrow = TRUE))
-  par (mar = c(5, 0, 1, 1), cex = 1.5)
+  par (mar = c(5, 0, 1, 1), cex = 1.2)
   
   barplot (tornado2 [, 1], 
            width     = 1, 
            horiz     = TRUE, 
            offset    = median.qpp, 
-           space     = 0, 
+           space     = 0.5, 
            names.arg = "",
            xlim      = c(min (tornado [, 1]), max (tornado [, 2])), 
            xlab      = "Benefit risk ratio", 
-           col       = "#92C5DE")
+           col       = "#92C5DE", 
+           cex.axis  = 2.75,
+           cex.lab   = 3.5)
   
   barplot (tornado2 [, 2], 
            width     = 1, 
            horiz     = TRUE, 
            add       = TRUE, 
            offset    = median.qpp, 
-           space     = 0, 
+           space     = 0.5, 
            names.arg = "", 
-           col       = "#92C5DE")
+           col       = "#92C5DE",
+           cex.axis  = 2.75)
   
   rect (20000, -0.49, 30000, length (tornado[,1])-0.5, col = "gray", density = 20)
   
@@ -704,7 +726,7 @@ tornado_regression <- function (benefit_risk_Africa,
         y      = seq (length (tornado [,1]) - 0.5, 0.5), 
         labels = rev (rownames (tornado)), 
         pos    = 2, 
-        cex    = 1)
+        cex    = 3.55)
   
   dev.off ()  # save tornado plot
   # ----------------------------------------------------------------------------
