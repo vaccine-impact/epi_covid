@@ -599,19 +599,36 @@ tornado_regression <- function (benefit_risk_Africa,
   # tornado plot using linear regression
   
   para_names = c("Benefit risk ratio", 
-                 "Vaccine deaths averted", 
+                 "Child deaths averted by routine immunisation", 
                  "Duration of period at risk of SARS-nCoV-2",
                  "Basic reproduction number for SARS-nCoV-2", 
                  "Duration of infectiousness from SARS-nCoV-2",
-                 "Number of non-vaccinator contacts of child and carer",
+                 "Number of non-vaccinator contacts \n of child and carer",
                  # "RR of vaccinator being infected and infectious",
                  # "RR of potentially infectious contact of a vaccinator transmitting",
-                 "Risk ratio of a vaccinator being infected and \n infectious versus another community member", 
-                 "Risk ratio per potentially infectious contact of a \n vaccinator transmitting versus another community member", 
-                 "Transmission relevant contacts of a community member per day",
-                 "Infection fatality rate for a child", 
-                 "Infection fatality rate for an adult", 
-                 "Infection fatality rate for an older person")
+                 "Risk ratio of vaccinator being infected and \n infectious versus community member", 
+                 "Risk ratio per potentially infectious contact of \n vaccinator transmitting vs community member", 
+                 "Transmission relevant contacts of \n community member per day",
+                 "Infection fatality rate for children", 
+                 "Infection fatality rate for adults", 
+                 "Infection fatality rate for older adults" 
+                 )
+  
+  
+  # para_names = c("Benefit risk ratio", 
+  #                "Child deaths averted by routine immunisation", 
+  #                "Duration of period at risk of SARS-nCoV-2",
+  #                "Basic reproduction number for SARS-nCoV-2", 
+  #                "Duration of infectiousness from SARS-nCoV-2",
+  #                "Number of non-vaccinator contacts of child and carer",
+  #                # "RR of vaccinator being infected and infectious",
+  #                # "RR of potentially infectious contact of a vaccinator transmitting",
+  #                "Risk ratio of vaccinator being infected and infectious vs community member", 
+  #                "Risk ratio per infectious contact of vaccinator transmitting vs community member", 
+  #                "Transmission relevant contacts of a community member per day",
+  #                "Infection fatality rate for a child", 
+  #                "Infection fatality rate for an adult", 
+  #                "Infection fatality rate for an older person")
   
   para = subset (para, 
                    para [, 1] > quantile (para [, 1], 0.025) & 
@@ -664,29 +681,34 @@ tornado_regression <- function (benefit_risk_Africa,
 
   # ----------------------------------------------------------------------------
   # tornado plot
-  png (file = "figures/tornado.png", width = 1650, height = 800)
+  # png (file = "figures/tornado.png", width = 3300, height = 1750)
+  setEPS ()
+  postscript (file = "figures/tornado.eps", width = 50, height = 26)
   
   layout (matrix (c(2,1,1), 1, 3, byrow = TRUE))
-  par (mar = c(5, 0, 1, 1), cex = 1.5)
+  par (mar = c(5, 0, 1, 1), cex = 1.2)
   
-  barplot (tornado2 [,1], 
+  barplot (tornado2 [, 1], 
            width     = 1, 
            horiz     = TRUE, 
            offset    = median.qpp, 
-           space     = 0, 
+           space     = 0.5, 
            names.arg = "",
            xlim      = c(min (tornado [, 1]), max (tornado [, 2])), 
            xlab      = "Benefit risk ratio", 
-           col       = "#92C5DE")
+           col       = "#92C5DE", 
+           cex.axis  = 2.75,
+           cex.lab   = 3.5)
   
   barplot (tornado2 [, 2], 
            width     = 1, 
            horiz     = TRUE, 
            add       = TRUE, 
            offset    = median.qpp, 
-           space     = 0, 
+           space     = 0.5, 
            names.arg = "", 
-           col       = "#92C5DE")
+           col       = "#92C5DE",
+           cex.axis  = 2.75)
   
   rect (20000, -0.49, 30000, length (tornado[,1])-0.5, col = "gray", density = 20)
   
@@ -704,7 +726,7 @@ tornado_regression <- function (benefit_risk_Africa,
         y      = seq (length (tornado [,1]) - 0.5, 0.5), 
         labels = rev (rownames (tornado)), 
         pos    = 2, 
-        cex    = 1)
+        cex    = 3.55)
   
   dev.off ()  # save tornado plot
   # ----------------------------------------------------------------------------
@@ -1037,9 +1059,10 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
   # benefit_risk_ratio titles
   br_ratio_title <- c ("Benefit-risk ratio (household)",
                        "Benefit-risk ratio (vaccinated children)",
-                       "Benefit-risk ratio (siblings)",
-                       "Benefit-risk ratio (parents)",
-                       "Benefit-risk ratio (grandparents)")
+                       "Benefit-risk ratio (siblings aged below 20 years)",
+                       "Benefit-risk ratio (adults aged 20-60 years)",
+                       "Benefit-risk ratio (older adults aged above 60 years)"
+                       )
 
   i <- 0  # counter for benefit_risk_ratio titles
 
@@ -1117,14 +1140,27 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
         theme (axis.text.x      = element_blank(), axis.ticks = element_blank()) +
         theme (axis.text.y      = element_blank(), axis.ticks = element_blank()) +
         theme (panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
-        theme (plot.title       = element_text (size = 11)) +
-        theme (plot.subtitle    = element_text (size = 10)) +
+        theme (plot.title       = element_text (size = 9)) +
+        theme (plot.subtitle    = element_text (size = 9)) +
         theme (legend.title     = element_text (size = 10)) +
         theme (legend.text      = element_text (size = 7))
 
 
       print (p)
-
+      
+      # --------------------------------------------------------------------------
+      # save figure in eps format for paper 
+      if ((br_ratio == "benefit_risk_ratio") & 
+          (vaccine == "DTP3, HepB3, Hib3, PCV3, RotaC, MCV1, RCV1, MenA, YFV, MCV2")) {
+        
+        p <- p + labs (title = NULL, subtitle = NULL)
+        
+        ggsave (filename = "figures/Figure-benefit-risk-ratio.eps",
+                plot = p) 
+        # width = 6, height = 9.5, units="in")
+      }
+      # --------------------------------------------------------------------------
+      
     } # end -- for (vaccine in vaccines)
 
   } # end -- for (br_ratio in br_ratios)
@@ -1420,6 +1456,46 @@ save_benefit_risk_results <- function (benefit_risk,
 
 
 # ------------------------------------------------------------------------------
+# adjust vaccine impact estimates for pessimistic measles scenario
+# ------------------------------------------------------------------------------
+measles_scenario <- function (vaccine_impact_psa, 
+                              suspension_period, 
+                              outbreak_chance,
+                              reduced_transmission) {
+
+  # reduced transmission due to social distancing will increase the inter-pandemic 
+  # period. Hence it will decrease the chance of an outbreak - hence we could 
+  # assume that it will further half the chance of an outbreak
+  
+  # time since vaccination to 5 years of age
+  # mcv1 vaccination at 9 months of age
+  # mcv2 vaccination at 15-18 months of age
+  # impact_period_mcv1 <- (60 - 9)         / 12
+  # impact_period_mcv2 <- (60 - (15+18)/2) / 12
+  
+  # adjustment factors of vaccine impact
+  # adjustment_mcv1 = (suspension_period / impact_period_mcv1) * outbreak_chance
+  # adjustment_mcv2 = (suspension_period / impact_period_mcv2) * outbreak_chance
+  adjustment_mcv1 = outbreak_chance * reduced_transmission
+  adjustment_mcv2 = outbreak_chance * reduced_transmission
+  
+  # adjust vaccine impact
+  vaccine_impact_psa [!(Vaccine == "MCV1" | Vaccine == "MCV2"), 
+                      vac_deaths_averted := 0]
+  
+  vaccine_impact_psa [Vaccine == "MCV1", 
+                      vac_deaths_averted := vac_deaths_averted * adjustment_mcv1]
+  
+  vaccine_impact_psa [Vaccine == "MCV2", 
+                      vac_deaths_averted := vac_deaths_averted * adjustment_mcv2]
+  
+  return (vaccine_impact_psa)
+
+} # end of function -- measles_scenario
+# ------------------------------------------------------------------------------
+
+
+# ------------------------------------------------------------------------------
 # main program
 # ------------------------------------------------------------------------------
 
@@ -1434,12 +1510,19 @@ setwd ("../")
 set.seed (1)  # seed for random number generator
 psa <- 4000   # number of runs for probabilistic sensitivity analysis
 
+suspension_periods        <- c ( 6/12)  # unit in year
+suspension_period_strings <- c ("6 months")
+
 # potential delay or suspension period of EPI due to COVID-19
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
 # suspension_period_strings <- c ("3 months", "6 months", "12 months")
 
-suspension_periods        <- c ( 6/12)  # unit in year
-suspension_period_strings <- c ("6 months")
+# ------------------------------------------------------------------------------
+# pessimistic measles scenario
+run_measles_scenario <- FALSE
+outbreak_chance      <- 0.25  # 25%
+reduced_transmission <- 0.5   # 50% (social distancing will increase inter-pandemic period)
+# ------------------------------------------------------------------------------
 
 for (period in 1:length (suspension_periods)) {
 
@@ -1467,6 +1550,15 @@ for (period in 1:length (suspension_periods)) {
                                                       age_group = age_group,
                                                       suspension_period,
                                                       psa)
+    
+    # adjust vaccine impact estimates for pessimistic measles scenario
+    if (run_measles_scenario) {
+      
+      vaccine_impact_psa <- measles_scenario (vaccine_impact_psa, 
+                                              suspension_period, 
+                                              outbreak_chance, 
+                                              reduced_transmission)
+    }
 
     # estimate potential deaths due to covid-19 by continuing vaccination programmes
     vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact_psa,
