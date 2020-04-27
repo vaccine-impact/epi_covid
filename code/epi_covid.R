@@ -415,14 +415,15 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
   pv    <- p0 * iota1                    # prevalence of infectiousness amongst vaccinators on given day
   big_n <- 5                             # av. no. of community member transmission relevant contacts per day
   t0    <- r0/(big_n * psi)              # prob. transmission given potentially infectious community contact
-  tv    <- t0/iota2                      # prob. transmission given potentially infectious vaccinator contact
+  tv    <- t0 * iota2                      # prob. transmission given potentially infectious vaccinator contact
 
-  pe_v1_mid <- (1-((1-pv)^(2*1*tv)*(1-p0)^(2*1*n*t0)))*(1-theta) # excess household risk from 1 visit
-  pe_v2_mid <- (1-((1-pv)^(2*2*tv)*(1-p0)^(2*2*n*t0)))*(1-theta) # excess household risk from 2 visits
-  pe_v3_mid <- (1-((1-pv)^(2*3*tv)*(1-p0)^(2*3*n*t0)))*(1-theta) # excess household risk from 3 visits
+  pe_v1_mid <- (1-((1-tv)^(2*1*pv)*(1-t0)^(2*1*n*p0)))*(1-theta) # excess household risk from 1 visit
+  pe_v2_mid <- (1-((1-tv)^(2*2*pv)*(1-t0)^(2*2*n*p0)))*(1-theta) # excess household risk from 2 visits
+  pe_v3_mid <- (1-((1-tv)^(2*3*pv)*(1-t0)^(2*3*n*p0)))*(1-theta) # excess household risk from 3 visits
 
   # using PSA
 
+  big_t <- suspension_period * 12 * 30   # duration of period at risk of SARS-CoV-2 ** in days **
   big_t <- runif  (psa, big_t-30, big_t+30) # uniform on -/+ 30 days from period that is passed in
   r0    <- rgamma (psa, shape = 25, scale = (2.5/25))
   theta <- 1-(1/r0)
@@ -434,11 +435,11 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
   pv    <- p0 * iota1
   big_n <- runif  (psa, 2, 10)
   t0    <- r0/(big_n * psi)
-  tv    <- t0/iota2
+  tv    <- t0 * iota2
 
-  pe_v1 <- (1-((1-pv)^(2*1*tv)*(1-p0)^(2*1*n*t0)))*(1-theta) # excess household risk from 1 visit
-  pe_v2 <- (1-((1-pv)^(2*2*tv)*(1-p0)^(2*2*n*t0)))*(1-theta) # excess household risk from 2 visits
-  pe_v3 <- (1-((1-pv)^(2*3*tv)*(1-p0)^(2*3*n*t0)))*(1-theta) # excess household risk from 3 visits
+  pe_v1 <- (1-((1-tv)^(2*1*pv)*(1-t0)^(2*1*n*p0)))*(1-theta) # excess household risk from 1 visit
+  pe_v2 <- (1-((1-tv)^(2*2*pv)*(1-t0)^(2*2*n*p0)))*(1-theta) # excess household risk from 2 visits
+  pe_v3 <- (1-((1-tv)^(2*3*pv)*(1-t0)^(2*3*n*p0)))*(1-theta) # excess household risk from 3 visits
 
   ifr_child        <- rgamma (psa, shape = 0.5163, rate = 10000) # assume ifr for age 0-9
   ifr_parents      <- rgamma (psa, shape = 3.5485, rate = 10000) # assume ifr for age 20-29
