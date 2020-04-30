@@ -1219,14 +1219,16 @@ save_benefit_risk_results <- function (benefit_risk,
                                        benefit_risk_summary_Africa,
                                        suspension_period,
                                        suspension_period_string,
-                                       age_group) {
+                                       age_group, 
+                                       impact) {
 
   # ----------------------------------------------------------------------------
   # save benefit-risk results of all psa runs
   fwrite (benefit_risk, file = paste0 ("tables/benefit_risk_results_",
                                        suspension_period_string,
                                        "_suspension_",
-                                       age_group,
+                                       age_group, "_", 
+                                       impact, 
                                        ".csv") )
   # ----------------------------------------------------------------------------
 
@@ -1235,7 +1237,8 @@ save_benefit_risk_results <- function (benefit_risk,
   fwrite (benefit_risk_summary , file = paste0 ("tables/benefit_risk_summary_results_",
                                                 suspension_period_string,
                                                 "_suspension_",
-                                                age_group,
+                                                age_group, "_", 
+                                                impact, 
                                                 ".csv") )
 
   # save benefit-risk results summary -- country level -- for paper
@@ -1301,7 +1304,8 @@ save_benefit_risk_results <- function (benefit_risk,
           paste0 ("tables/Table_benefit_risk_summary_results_",
                   suspension_period_string,
                   "_suspension_",
-                  age_group,
+                  age_group, "_", 
+                  impact, 
                   ".csv"),
           col.names = T, row.names = F)
 
@@ -1312,7 +1316,8 @@ save_benefit_risk_results <- function (benefit_risk,
   fwrite (benefit_risk_summary_Africa , file = paste0 ("tables/benefit_risk_summary_Africa_results_",
                                                        suspension_period_string,
                                                        "_suspension_",
-                                                       age_group,
+                                                       age_group, "_", 
+                                                       impact, 
                                                        ".csv") )
 
   # save benefit-risk results summary -- continent level -- for paper
@@ -1373,7 +1378,8 @@ save_benefit_risk_results <- function (benefit_risk,
           paste0 ("tables/Table_benefit_risk_summary_Africa_results_",
                   suspension_period_string,
                   "_suspension_",
-                  age_group,
+                  age_group, "_", 
+                  impact, 
                   ".csv"),
           col.names = T, row.names = F)
   # ----------------------------------------------------------------------------
@@ -1432,7 +1438,8 @@ save_benefit_risk_results <- function (benefit_risk,
           paste0 ("tables/Table_benefits_risks_benefit_risk_ratios_summary_Africa_results_",
                   suspension_period_string,
                   "_suspension_",
-                  age_group,
+                  age_group, "_", 
+                  impact, 
                   ".csv"),
           col.names = T, row.names = F)
 
@@ -1480,7 +1487,8 @@ save_benefit_risk_results <- function (benefit_risk,
           paste0 ("tables/Table_benefits_risks_benefit_risk_ratios_summary_country_level_results_",
                   suspension_period_string,
                   "_suspension_",
-                  age_group,
+                  age_group, "_", 
+                  impact, 
                   ".csv"),
           col.names = T, row.names = F)
   
@@ -1654,7 +1662,8 @@ for (impact in c("high", "low")) {
                                  benefit_risk_summary_Africa,
                                  suspension_period,
                                  suspension_period_string,
-                                 age_group = age_group)
+                                 age_group = age_group,
+                                 impact)
       
     } # end -- for (age_group in age_groups)
     
