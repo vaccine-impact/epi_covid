@@ -1196,7 +1196,7 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
         
         p <- p + labs (title = NULL, subtitle = NULL)
         
-        ggsave (filename = paste0 ("figures/Figure-benefit-risk-ratio_EPI3_", impact, ".eps"),
+        ggsave (filename = paste0 ("figures/Figure-benefit-risk-ratio_EPI_", impact, ".eps"),
                 plot = p) 
         # width = 6, height = 9.5, units="in")
       }
