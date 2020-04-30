@@ -338,11 +338,11 @@ add_hh_size_data <- function (vaccine_impact) {
     dplyr::group_by(iso3_code) %>%
     dplyr::top_n(1,`Reference date (dd/mm/yyyy)`) %>%
     dplyr::mutate_at(vars(6,18,25,30),as.numeric) %>%
-    dplyr::select(iso3_code = 1,
-                  hh_size = 6,
+    dplyr::select(iso3_code                            = 1,
+                  hh_size                              = 6,
                   under_20_in_hh_at_least_one_under_20 = 30,
-                  percent_hh_at_least_one_under_20 = 18,
-                  percent_hh_under_20_and_over_60 = 25)
+                  percent_hh_at_least_one_under_20     = 18,
+                  percent_hh_under_20_and_over_60      = 25)
 
   # merge data into vaccine_impact
   vaccine_impact <- merge (
@@ -382,12 +382,9 @@ add_hh_size_data <- function (vaccine_impact) {
 
 
 # ------------------------------------------------------------------------------
-#
-# estimate_covid_deaths -- new updated version
-#                          (incorporates psa & uncertainty propagation)
-#
-# ------------------------------------------------------------------------------
 # estimate potential deaths due to covid-19 by continuing vaccination programmes
+# ------------------------------------------------------------------------------
+
 estimate_covid_deaths <- function (vaccine_impact_psa,
                                    suspension_period,
                                    psa) {
@@ -400,60 +397,96 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
   # by suspension of EPI
   vaccine_covid_impact [, suspension_period := suspension_period]
 
+  # ----------------------------------------------------------------------------
   # infection risk from contacts due to vaccination visits
+  # using point estimates for deterministic values
 
-  # using point estiamtes for deterministic values
+  # big_t <- suspension_period * 12 * 30   # duration of period at risk of SARS-CoV-2 ** in days **
+  # r0    <- 2.5                           # basic reproduction number
+  # theta <- 1-(1/r0)                      # proportion of pop. infected at big_t assuming no "overshooting"
+  # psi   <- 7                             # duration of infectiousness
+  # n     <- 2                             # number of potentially infectious contacts on visit to clinic
+  # iota1 <- 2                             # RR vacinator being infected + infectious vs community member
+  # iota2 <- 0.5                           # RR of infectious vaccinator transmitting vs community member
+  # p0    <- (theta * psi)/big_t           # prevalence of infectiousness amongst community members on given day
+  # pv    <- p0 * iota1                    # prevalence of infectiousness amongst vaccinators on given day
+  # big_n <- 5                             # av. no. of community member transmission relevant contacts per day
+  # t0    <- r0/(big_n * psi)              # prob. transmission given potentially infectious community contact
+  # tv    <- t0 * iota2                    # prob. transmission given potentially infectious vaccinator contact
+  # 
+  # pe_v1_mid <- (1-((1-tv)^(2*1*pv)*(1-t0)^(2*1*n*p0)))*(1-theta) # excess household risk from 1 visit
+  # pe_v2_mid <- (1-((1-tv)^(2*2*pv)*(1-t0)^(2*2*n*p0)))*(1-theta) # excess household risk from 2 visits
+  # pe_v3_mid <- (1-((1-tv)^(2*3*pv)*(1-t0)^(2*3*n*p0)))*(1-theta) # excess household risk from 3 visits
+  
+  # ----------------------------------------------------------------------------
+  # infection risk from contacts due to vaccination visits
+  # using distributions (for probabilistic sensitivity analysis)
 
-  big_t <- suspension_period * 12 * 30   # duration of period at risk of SARS-CoV-2 ** in days **
-  r0    <- 2.5                           # basic reproduction number
-  theta <- 1-(1/r0)                      # proportion of pop. infected at big_t assuming no "overshooting"
-  psi   <- 7                             # duration of infectiousness
-  n     <- 2                             # number of potentially infectious contacts on visit to clinic
-  iota1 <- 2                             # RR vacinator being infected + infectious vs community member
-  iota2 <- 0.5                           # RR of infectious vaccinator transmitting vs community member
-  p0    <- (theta * psi)/big_t           # prevalence of infectiousness amongst community members on given day
-  pv    <- p0 * iota1                    # prevalence of infectiousness amongst vaccinators on given day
-  big_n <- 5                             # av. no. of community member transmission relevant contacts per day
-  t0    <- r0/(big_n * psi)              # prob. transmission given potentially infectious community contact
-  tv    <- t0 * iota2                      # prob. transmission given potentially infectious vaccinator contact
-
-  pe_v1_mid <- (1-((1-tv)^(2*1*pv)*(1-t0)^(2*1*n*p0)))*(1-theta) # excess household risk from 1 visit
-  pe_v2_mid <- (1-((1-tv)^(2*2*pv)*(1-t0)^(2*2*n*p0)))*(1-theta) # excess household risk from 2 visits
-  pe_v3_mid <- (1-((1-tv)^(2*3*pv)*(1-t0)^(2*3*n*p0)))*(1-theta) # excess household risk from 3 visits
-
-  # using PSA
-
-  big_t <- suspension_period * 12 * 30   # duration of period at risk of SARS-CoV-2 ** in days **
-  big_t <- runif  (psa, big_t-30, big_t+30) # uniform on -/+ 30 days from period that is passed in
-  r0    <- rgamma (psa, shape = 25, scale = (2.5/25))
-  theta <- 1-(1/r0)
-  psi   <- rgamma (psa, shape = 14, scale = (7/14))
-  n     <- runif  (psa, 1, 10)
-  iota1 <- runif  (psa, 1, 4)
-  iota2 <- runif  (psa, 0.25, 1)
-  p0    <- (theta * psi)/big_t
-  pv    <- p0 * iota1
-  big_n <- runif  (psa, 2, 10)
-  t0    <- r0/(big_n * psi)
-  tv    <- t0 * iota2
-
-  pe_v1 <- (1-((1-tv)^(2*1*pv)*(1-t0)^(2*1*n*p0)))*(1-theta) # excess household risk from 1 visit
-  pe_v2 <- (1-((1-tv)^(2*2*pv)*(1-t0)^(2*2*n*p0)))*(1-theta) # excess household risk from 2 visits
-  pe_v3 <- (1-((1-tv)^(2*3*pv)*(1-t0)^(2*3*n*p0)))*(1-theta) # excess household risk from 3 visits
-
-  ifr_child        <- rgamma (psa, shape = 0.5163, rate = 10000) # assume ifr for age 0-9
-  ifr_parents      <- rgamma (psa, shape = 3.5485, rate = 10000) # assume ifr for age 20-29
-  ifr_grandparents <- rgamma (psa, shape = 14.563, rate = 737.06) # assume ifr for age 60-69
-
+  # duration of period at risk of SARS-CoV-2 ** in days **
+  # uniform on -/+ 30 days from period that is passed in
+  big_t <- suspension_period * 12 * 30                       
+  big_t <- runif  (n = psa, min = big_t-30, max = big_t+30) 
+  
+  # basic reproduction number for SARS-CoV-2
+  r0    <- rgamma (n = psa, shape = 25, scale = (2.5/25))   
+  
+  # proportion of SARS-CoV-2 infected population at the end of the study period
+  theta <- 1 - (1/r0)           
+  
+  # duration of infectiousness
+  psi   <- rgamma (psa, shape = 14, scale = (7/14))          
+  
+  # number of non-vaccinator contacts of child and carer during their travel to 
+  # the vaccine clinic and in the waiting room
+  n     <- runif  (n = psa, min = 1, max = 10)
+  
+  # risk ratio of a vaccinator being infected and infectious 
+  # versus another community member
+  iota1 <- runif  (n = psa, min = 1, max = 4)
+  
+  # risk ratio per potentially infectious contact of a vaccinator transmitting 
+  # versus another community member
+  iota2 <- runif  (n = psa, min = 0.25, max = 1)
+  
+  # prevalence of infectious community members on any given day 
+  p0    <- (theta * psi) / big_t
+  
+  # prevalence of infectious vaccinators on any given day
+  pv    <- iota1 * p0
+  
+  # average number of transmission relevant contacts of a community member per day
+  big_n <- runif  (n = psa, min = 2, max = 10)
+  
+  # probability of transmission given potentially infectious contact for other community members
+  t0    <- r0 / (big_n * psi)
+  
+  # probability of transmission given potentially infectious contact for vaccinators
+  tv    <- iota2 * t0
+  
+  # ----------------------------------------------------------------------------
+  # excess household risk from vaccine clinic visits (1 or 2 or 3 visits)
+  
+  pe_v1 <- (1 - ( (1 - tv)^(2*1*pv) * (1 - t0)^(2*1*p0*n) ) ) * (1 - theta)  # 1 visit
+  pe_v2 <- (1 - ( (1 - tv)^(2*2*pv) * (1 - t0)^(2*2*p0*n) ) ) * (1 - theta)  # 2 visits
+  pe_v3 <- (1 - ( (1 - tv)^(2*3*pv) * (1 - t0)^(2*3*p0*n) ) ) * (1 - theta)  # 3 visits
+  
+  # ----------------------------------------------------------------------------
+  # infection fatality rate for child, parents (adults), and grandparents (older adults)
+  
+  ifr_child        <- rgamma (n = psa, shape = 0.5163, rate = 10000)  # assume ifr for age 0-9
+  ifr_parents      <- rgamma (n = psa, shape = 3.5485, rate = 10000)  # assume ifr for age 20-29
+  ifr_grandparents <- rgamma (n = psa, shape = 14.563, rate = 737.06) # assume ifr for age 60-69
+  
+  # ----------------------------------------------------------------------------
 
   # add a column for estimated covid-19 deaths due to continuing vaccination programmes
   # if infection is imported into household then assume the following become infected:
   # (1) the child who attends the clinic
   # (2) other children in household based on the average household members <20 years in a
-  # household with at least one child - divded by 2 to account for birth order
+  #     household with at least one child - divded by 2 to account for birth order
   # (3) 2 adults in every household (caregiver who attends clinic plus one other)
   # (4) 2 adults over 60 adjusted for the proportion of households with members <20 years that
-  # also have a household member >60 years
+  #     also have a household member >60 years
 
   vaccine_covid_impact [,child_covid_deaths        := 0]
   vaccine_covid_impact [,sibling_covid_deaths      := 0]
@@ -463,15 +496,15 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
 
   # also pass out psa parameter value
 
-  vaccine_covid_impact [, param_big_t := 0]
-  vaccine_covid_impact [, param_r0 := 0]
-  vaccine_covid_impact [, param_psi := 0]
-  vaccine_covid_impact [, param_n := 0]
-  vaccine_covid_impact [, param_iota1 := 0]
-  vaccine_covid_impact [, param_iota2 := 0]
-  vaccine_covid_impact [, param_big_n := 0]
-  vaccine_covid_impact [, param_ifr_child := 0]
-  vaccine_covid_impact [, param_ifr_parents := 0]
+  vaccine_covid_impact [, param_big_t            := 0]
+  vaccine_covid_impact [, param_r0               := 0]
+  vaccine_covid_impact [, param_psi              := 0]
+  vaccine_covid_impact [, param_n                := 0]
+  vaccine_covid_impact [, param_iota1            := 0]
+  vaccine_covid_impact [, param_iota2            := 0]
+  vaccine_covid_impact [, param_big_n            := 0]
+  vaccine_covid_impact [, param_ifr_child        := 0]
+  vaccine_covid_impact [, param_ifr_parents      := 0]
   vaccine_covid_impact [, param_ifr_grandparents := 0]
 
   # psa runs
@@ -479,16 +512,16 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
 
     # psa parameters
 
-    vaccine_covid_impact [run_id == i, param_big_t := big_t [i]]
-    vaccine_covid_impact [run_id == i, param_r0 := r0 [i]]
-    vaccine_covid_impact [run_id == i, param_n := n [i]]
-    vaccine_covid_impact [run_id == i, param_psi := psi [i]]
-    vaccine_covid_impact [run_id == i, param_iota1 := iota1 [i]]
-    vaccine_covid_impact [run_id == i, param_iota2 := iota2 [i]]
-    vaccine_covid_impact [run_id == i, param_big_n := big_n [i]]
-    vaccine_covid_impact [run_id == i, param_ifr_child := ifr_child [i]]
-    vaccine_covid_impact [run_id == i, param_ifr_parents := ifr_parents [i]]
-    vaccine_covid_impact [run_id == i, param_ifr_grandparents := ifr_grandparents [i]]
+    vaccine_covid_impact [run_id == i, param_big_t            := big_t            [i] ]
+    vaccine_covid_impact [run_id == i, param_r0               := r0               [i] ]
+    vaccine_covid_impact [run_id == i, param_n                := n                [i] ]
+    vaccine_covid_impact [run_id == i, param_psi              := psi              [i] ]
+    vaccine_covid_impact [run_id == i, param_iota1            := iota1            [i] ]
+    vaccine_covid_impact [run_id == i, param_iota2            := iota2            [i] ]
+    vaccine_covid_impact [run_id == i, param_big_n            := big_n            [i] ]
+    vaccine_covid_impact [run_id == i, param_ifr_child        := ifr_child        [i] ]
+    vaccine_covid_impact [run_id == i, param_ifr_parents      := ifr_parents      [i] ]
+    vaccine_covid_impact [run_id == i, param_ifr_grandparents := ifr_grandparents [i] ]
 
     # antigens with 3 contacts
     vaccine_covid_impact [Vaccine %in% c("Diphtheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3") & run_id == i,
@@ -575,7 +608,8 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
 # ------------------------------------------------------------------------------
 #  regression model for tornado diagram
 tornado_regression <- function (benefit_risk_Africa,
-                                vaccine_covid_impact) {
+                                vaccine_covid_impact, 
+                                impact) {
 
   # generate dataset for regression
 
@@ -684,7 +718,9 @@ tornado_regression <- function (benefit_risk_Africa,
   # tornado plot
   # png (file = "figures/tornado.png", width = 3300, height = 1750)
   setEPS ()
-  postscript (file = "figures/tornado.eps", width = 50, height = 26)
+  postscript (file   = paste0 ("figures/tornado_", impact, ".eps"), 
+              width  = 50, 
+              height = 26)
   
   layout (matrix (c(2,1,1), 1, 3, byrow = TRUE))
   par (mar = c(5, 0, 1, 1), cex = 1.2)
@@ -1041,11 +1077,13 @@ benefit_risk_ratio_summary <- function (benefit_risk) {
 # generate map of benefit risk ratio
 benefit_risk_ratio_map <- function (benefit_risk_summary,
                                     suspension_period_string,
-                                    age_group) {
+                                    age_group, 
+                                    impact) {
   # file to save plots
   pdf (paste0 ("figures/benefit_risk_ratio_maps_",
                suspension_period_string, "_suspension_",
-               age_group, ".pdf"))
+               age_group, "_",
+               impact, ".pdf"))
 
   # ggplot theme
   theme_set (theme_bw())
@@ -1156,7 +1194,7 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
         
         p <- p + labs (title = NULL, subtitle = NULL)
         
-        ggsave (filename = "figures/Figure-benefit-risk-ratio.eps",
+        ggsave (filename = paste0 ("figures/Figure-benefit-risk-ratio_EPI3_", impact, ".eps"),
                 plot = p) 
         # width = 6, height = 9.5, units="in")
       }
@@ -1518,107 +1556,116 @@ suspension_period_strings <- c ("6 months")
 # suspension_periods        <- c ( 3/12,       6/12,       12/12)  # unit in year
 # suspension_period_strings <- c ("3 months", "6 months", "12 months")
 
-# ------------------------------------------------------------------------------
-# pessimistic measles scenario
-run_measles_scenario <- FALSE
+# low impact scenario -- only a measles outbreak with low chance
+#                        and no other infectious disease outbreak
 outbreak_chance      <- 0.25  # 25%
 reduced_transmission <- 0.5   # 50% (social distancing will increase inter-pandemic period)
-# ------------------------------------------------------------------------------
 
-for (period in 1:length (suspension_periods)) {
-
-  # set suspension period
-  suspension_period        <- suspension_periods        [period]
-  suspension_period_string <- suspension_period_strings [period]
-
-  # age group for vaccine impact -- "all" or "under5" age groups
-  # age_groups <- c("under5", "all")
-  age_groups <- c("under5")
-
-  for (age_group in age_groups) {
-
-    # extract vaccine coverage estimates for 2018 from WHO for 54 African countries
-    vaccine_coverage <- get_vaccine_coverage (age_group)
-
-    # add population estimates from UNWPP 2019
-    vaccine_coverage_pop <- add_population (vaccine_coverage)
-
-    # add UN household size data from DHS / IPUMS
-    vaccine_coverage_pop_hh <- add_hh_size_data (vaccine_coverage_pop)
-
-    # add deaths averted by vaccination among "all" or "under5" age groups
-    vaccine_impact_psa <- deaths_averted_vaccination (vaccine_coverage_pop_hh,
-                                                      age_group = age_group,
-                                                      suspension_period,
-                                                      psa)
+# scenarios: high impact and low impact 
+for (impact in c("high", "low")) {
+  
+  # different suspension periods
+  for (period in 1:length (suspension_periods)) {
     
-    # adjust vaccine impact estimates for pessimistic measles scenario
-    if (run_measles_scenario) {
+    # set suspension period
+    suspension_period        <- suspension_periods        [period]
+    suspension_period_string <- suspension_period_strings [period]
+    
+    # age group for vaccine impact -- "all" or "under5" age groups
+    # age_groups <- c("under5", "all")
+    age_groups <- c("under5")
+    
+    # age group for vaccine impact -- "all" or "under5" age groups
+    for (age_group in age_groups) {
       
-      vaccine_impact_psa <- measles_scenario (vaccine_impact_psa, 
-                                              suspension_period, 
-                                              outbreak_chance, 
-                                              reduced_transmission)
-    }
-
-    # estimate potential deaths due to covid-19 by continuing vaccination programmes
-    vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact_psa,
-                                                   suspension_period,
-                                                   psa)
-
-    # --------------------------------------------------------------------------
-    # estimate benefit risk ratio
-    # country level
-    benefit_risk <- benefit_risk_ratio (vaccine_covid_impact,
-                                        suspension_period)
-
-    # continental level
-    benefit_risk_Africa <- benefit_risk_ratio_Africa (vaccine_covid_impact,
-                                                      suspension_period)
-    # --------------------------------------------------------------------------
-
-    # --------------------------------------------------------------------------
-    # estimate benefit risk ratio -- summary estimates (median, credible intervals)
-    # country level
-    benefit_risk_summary <- benefit_risk_ratio_summary (benefit_risk)
-
-    # add country names
-    benefit_risk_summary [, Country := countrycode (sourcevar   = ISO_code,
-                                                    origin      = "iso3c",
-                                                    destination = "country.name")]
-    # set column order
-    setcolorder (benefit_risk_summary, "Country")
-
-    # continental level
-    # rename Continent column to ISO_code
-    setnames (benefit_risk_Africa, "Continent", "ISO_code")
-
-    # estimate benefit risk ratio -- summary estimates (median, credible intervals)
-    benefit_risk_summary_Africa <- benefit_risk_ratio_summary (benefit_risk_Africa)
-
-    # rename ISO_code column back to Continent
-    setnames (benefit_risk_summary_Africa, "ISO_code", "Continent")
-    # --------------------------------------------------------------------------
-
-    # generate map of benefit risk ratio
-    benefit_risk_ratio_map (benefit_risk_summary,
-                            suspension_period_string,
-                            age_group = age_group)
-
-    # save benefit-risk results
-    save_benefit_risk_results (benefit_risk,
-                               benefit_risk_summary,
-                               benefit_risk_summary_Africa,
-                               suspension_period,
-                               suspension_period_string,
-                               age_group = age_group)
-
-  } # end -- for (age_group in age_groups)
-
-} # end -- for (period in 1:length (suspension_periods))
-
-# produce tornado diagram
-fit <- tornado_regression (benefit_risk_Africa, vaccine_covid_impact)
+      # extract vaccine coverage estimates for 2018 from WHO for 54 African countries
+      vaccine_coverage <- get_vaccine_coverage (age_group)
+      
+      # add population estimates from UNWPP 2019
+      vaccine_coverage_pop <- add_population (vaccine_coverage)
+      
+      # add UN household size data from DHS / IPUMS
+      vaccine_coverage_pop_hh <- add_hh_size_data (vaccine_coverage_pop)
+      
+      # add deaths averted by vaccination among "all" or "under5" age groups
+      vaccine_impact_psa <- deaths_averted_vaccination (vaccine_coverage_pop_hh,
+                                                        age_group = age_group,
+                                                        suspension_period,
+                                                        psa)
+      
+      # low impact scenario
+      # adjust vaccine impact estimates for pessimistic measles scenario
+      if (impact == "low") {
+        
+        vaccine_impact_psa <- measles_scenario (vaccine_impact_psa, 
+                                                suspension_period, 
+                                                outbreak_chance, 
+                                                reduced_transmission)
+      }
+      
+      # estimate potential deaths due to covid-19 by continuing vaccination programmes
+      vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact_psa,
+                                                     suspension_period,
+                                                     psa)
+      
+      # --------------------------------------------------------------------------
+      # estimate benefit risk ratio
+      # country level
+      benefit_risk <- benefit_risk_ratio (vaccine_covid_impact,
+                                          suspension_period)
+      
+      # continental level
+      benefit_risk_Africa <- benefit_risk_ratio_Africa (vaccine_covid_impact,
+                                                        suspension_period)
+      # --------------------------------------------------------------------------
+      
+      # --------------------------------------------------------------------------
+      # estimate benefit risk ratio -- summary estimates (median, credible intervals)
+      # country level
+      benefit_risk_summary <- benefit_risk_ratio_summary (benefit_risk)
+      
+      # add country names
+      benefit_risk_summary [, Country := countrycode (sourcevar   = ISO_code,
+                                                      origin      = "iso3c",
+                                                      destination = "country.name")]
+      # set column order
+      setcolorder (benefit_risk_summary, "Country")
+      
+      # continental level
+      # rename Continent column to ISO_code
+      setnames (benefit_risk_Africa, "Continent", "ISO_code")
+      
+      # estimate benefit risk ratio -- summary estimates (median, credible intervals)
+      benefit_risk_summary_Africa <- benefit_risk_ratio_summary (benefit_risk_Africa)
+      
+      # rename ISO_code column back to Continent
+      setnames (benefit_risk_summary_Africa, "ISO_code", "Continent")
+      # --------------------------------------------------------------------------
+      
+      # generate map of benefit risk ratio
+      benefit_risk_ratio_map (benefit_risk_summary,
+                              suspension_period_string,
+                              age_group = age_group, 
+                              impact)
+      
+      # save benefit-risk results
+      save_benefit_risk_results (benefit_risk,
+                                 benefit_risk_summary,
+                                 benefit_risk_summary_Africa,
+                                 suspension_period,
+                                 suspension_period_string,
+                                 age_group = age_group)
+      
+    } # end -- for (age_group in age_groups)
+    
+  } # end -- for (period in 1:length (suspension_periods))
+  
+  # produce tornado diagram
+  fit <- tornado_regression (benefit_risk_Africa, 
+                             vaccine_covid_impact, 
+                             impact)
+  
+} # end -- for (impact in c("high", "low"))
 
 # return to source directory
 setwd (source_wd)
