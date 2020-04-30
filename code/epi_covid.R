@@ -1152,9 +1152,11 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
                               mid = "white",
                               high = "blue",
                               na.value = "grey80",
-                              limits = c (0.2, 500),
+                              limits = c (0.05, 700),
                               trans = "log10",
-                              breaks = c(0.2, 1, 5, 10, 50, 100, 500)) +
+                              breaks = c(0.2, 1, 10, 100, 500)) +
+                              # breaks = c(0.2, 1, 5, 10, 50, 100, 500)) +
+
 
         # scale_fill_gradient2 (midpoint = 0,
         #                       low = "red",
@@ -1570,7 +1572,7 @@ outbreak_chance      <- 0.25  # 25%
 reduced_transmission <- 0.5   # 50% (social distancing will increase inter-pandemic period)
 
 # scenarios: high impact and low impact 
-for (impact in c("high", "low")) {
+for (impact in c("low", "high")) {
   
   # different suspension periods
   for (period in 1:length (suspension_periods)) {
