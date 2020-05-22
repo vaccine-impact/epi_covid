@@ -14,6 +14,7 @@ library (rriskDistributions)
 library (scales)
 library (tictoc)
 library (tidyverse)
+library (bayestestR)
 
 
 # remove all objects from workspace
@@ -1017,53 +1018,87 @@ benefit_risk_ratio_Africa <- function (vaccine_covid_impact,
 benefit_risk_ratio_summary <- function (benefit_risk) {
 
   benefit_risk_summary <- benefit_risk
-
+  
   # estimate benefit-risk ratios among different groups
   # median and credible intervals
   benefit_risk_summary <-
     benefit_risk_summary [, list (benefit_risk_ratio                  = quantile (benefit_risk_ratio,             0.5,   na.rm = T),
-                                  benefit_risk_ratio_low              = quantile (benefit_risk_ratio,             0.025, na.rm = T),
-                                  benefit_risk_ratio_high             = quantile (benefit_risk_ratio,             0.975, na.rm = T),
+                                  benefit_risk_ratio_low              = ci       (benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_low,
+                                  benefit_risk_ratio_high             = ci       (benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_high,
+                                  
+                                  # benefit_risk_ratio_low              = quantile (benefit_risk_ratio,             0.025, na.rm = T),
+                                  # benefit_risk_ratio_high             = quantile (benefit_risk_ratio,             0.975, na.rm = T),
 
                                   child_benefit_risk_ratio            = quantile (child_benefit_risk_ratio,       0.5,   na.rm = T),
-                                  child_benefit_risk_ratio_low        = quantile (child_benefit_risk_ratio,       0.025, na.rm = T),
-                                  child_benefit_risk_ratio_high       = quantile (child_benefit_risk_ratio,       0.975, na.rm = T),
+                                  child_benefit_risk_ratio_low        = ci       (child_benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_low,
+                                  child_benefit_risk_ratio_high       = ci       (child_benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_high,
+                                  
+                                  # child_benefit_risk_ratio_low        = quantile (child_benefit_risk_ratio,       0.025, na.rm = T),
+                                  # child_benefit_risk_ratio_high       = quantile (child_benefit_risk_ratio,       0.975, na.rm = T),
 
                                   sibling_benefit_risk_ratio          = quantile (sibling_benefit_risk_ratio,     0.5,   na.rm = T),
-                                  sibling_benefit_risk_ratio_low      = quantile (sibling_benefit_risk_ratio,     0.025, na.rm = T),
-                                  sibling_benefit_risk_ratio_high     = quantile (sibling_benefit_risk_ratio,     0.975, na.rm = T),
+                                  sibling_benefit_risk_ratio_low      = ci       (sibling_benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_low,
+                                  sibling_benefit_risk_ratio_high     = ci       (sibling_benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_high,
+                                  
+                                  # sibling_benefit_risk_ratio_low      = quantile (sibling_benefit_risk_ratio,     0.025, na.rm = T),
+                                  # sibling_benefit_risk_ratio_high     = quantile (sibling_benefit_risk_ratio,     0.975, na.rm = T),
 
                                   parent_benefit_risk_ratio           = quantile (parent_benefit_risk_ratio,      0.5,   na.rm = T),
-                                  parent_benefit_risk_ratio_low       = quantile (parent_benefit_risk_ratio,      0.025, na.rm = T),
-                                  parent_benefit_risk_ratio_high      = quantile (parent_benefit_risk_ratio,      0.975, na.rm = T),
-
+                                  parent_benefit_risk_ratio_low       = ci       (parent_benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_low,
+                                  parent_benefit_risk_ratio_high      = ci       (parent_benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_high,
+                                  
+                                  # parent_benefit_risk_ratio_low       = quantile (parent_benefit_risk_ratio,      0.025, na.rm = T),
+                                  # parent_benefit_risk_ratio_high      = quantile (parent_benefit_risk_ratio,      0.975, na.rm = T),
+                                  
                                   grandparent_benefit_risk_ratio      = quantile (grandparent_benefit_risk_ratio, 0.5,   na.rm = T),
-                                  grandparent_benefit_risk_ratio_low  = quantile (grandparent_benefit_risk_ratio, 0.025, na.rm = T),
-                                  grandparent_benefit_risk_ratio_high = quantile (grandparent_benefit_risk_ratio, 0.975, na.rm = T),
+                                  grandparent_benefit_risk_ratio_low  = ci       (grandparent_benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_low,
+                                  grandparent_benefit_risk_ratio_high = ci       (grandparent_benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_high,
+                                  
+                                  # grandparent_benefit_risk_ratio_low  = quantile (grandparent_benefit_risk_ratio, 0.025, na.rm = T),
+                                  # grandparent_benefit_risk_ratio_high = quantile (grandparent_benefit_risk_ratio, 0.975, na.rm = T),
 
                                   vac_deaths_averted                  = quantile (vac_deaths_averted,             0.5,   na.rm = T),
-                                  vac_deaths_averted_low              = quantile (vac_deaths_averted,             0.025, na.rm = T),
-                                  vac_deaths_averted_high             = quantile (vac_deaths_averted,             0.975, na.rm = T),
+                                  vac_deaths_averted_low              = ci       (vac_deaths_averted, ci = 0.95, method = "HDI")$CI_low,
+                                  vac_deaths_averted_high             = ci       (vac_deaths_averted, ci = 0.95, method = "HDI")$CI_high,
+                                  
+                                  # vac_deaths_averted_low              = quantile (vac_deaths_averted,             0.025, na.rm = T),
+                                  # vac_deaths_averted_high             = quantile (vac_deaths_averted,             0.975, na.rm = T),
 
                                   covid_deaths                         = quantile (covid_deaths,                  0.5,   na.rm = T),
-                                  covid_deaths_low                     = quantile (covid_deaths,                  0.025, na.rm = T),
-                                  covid_deaths_high                    = quantile (covid_deaths,                  0.975, na.rm = T),
+                                  covid_deaths_low                     = ci       (covid_deaths, ci = 0.95, method = "HDI")$CI_low,
+                                  covid_deaths_high                    = ci       (covid_deaths, ci = 0.95, method = "HDI")$CI_high,
+                                  
+                                  # covid_deaths_low                     = quantile (covid_deaths,                  0.025, na.rm = T),
+                                  # covid_deaths_high                    = quantile (covid_deaths,                  0.975, na.rm = T),
 
                                   child_covid_deaths                  = quantile (child_covid_deaths,             0.5,   na.rm = T),
-                                  child_covid_deaths_low              = quantile (child_covid_deaths,             0.025, na.rm = T),
-                                  child_covid_deaths_high             = quantile (child_covid_deaths,             0.975, na.rm = T),
+                                  child_covid_deaths_low              = ci       (child_covid_deaths, ci = 0.95, method = "HDI")$CI_low,
+                                  child_covid_deaths_high             = ci       (child_covid_deaths, ci = 0.95, method = "HDI")$CI_high,
+                                  
+                                  # child_covid_deaths_low              = quantile (child_covid_deaths,             0.025, na.rm = T),
+                                  # child_covid_deaths_high             = quantile (child_covid_deaths,             0.975, na.rm = T),
 
                                   sibling_covid_deaths                = quantile (sibling_covid_deaths,           0.5,   na.rm = T),
-                                  sibling_covid_deaths_low            = quantile (sibling_covid_deaths,           0.025, na.rm = T),
-                                  sibling_covid_deaths_high           = quantile (sibling_covid_deaths,           0.975, na.rm = T),
+                                  sibling_covid_deaths_low            = ci       (sibling_covid_deaths, ci = 0.95, method = "HDI")$CI_low,
+                                  sibling_covid_deaths_high           = ci       (sibling_covid_deaths, ci = 0.95, method = "HDI")$CI_high,
+                                  
+                                  # sibling_covid_deaths_low            = quantile (sibling_covid_deaths,           0.025, na.rm = T),
+                                  # sibling_covid_deaths_high           = quantile (sibling_covid_deaths,           0.975, na.rm = T),
 
                                   parent_covid_deaths                  = quantile (parent_covid_deaths,           0.5,   na.rm = T),
-                                  parent_covid_deaths_low              = quantile (parent_covid_deaths,           0.025, na.rm = T),
-                                  parent_covid_deaths_high             = quantile (parent_covid_deaths,           0.975, na.rm = T),
+                                  parent_covid_deaths_low              = ci       (parent_covid_deaths, ci = 0.95, method = "HDI")$CI_low,
+                                  parent_covid_deaths_high             = ci       (parent_covid_deaths, ci = 0.95, method = "HDI")$CI_high,
+                                  
+                                  # parent_covid_deaths_low              = quantile (parent_covid_deaths,           0.025, na.rm = T),
+                                  # parent_covid_deaths_high             = quantile (parent_covid_deaths,           0.975, na.rm = T),
 
                                   grandparent_covid_deaths             = quantile (grandparent_covid_deaths,      0.5,   na.rm = T),
-                                  grandparent_covid_deaths_low         = quantile (grandparent_covid_deaths,      0.025, na.rm = T),
-                                  grandparent_covid_deaths_high        = quantile (grandparent_covid_deaths,      0.975, na.rm = T)
+                                  grandparent_covid_deaths_low         = ci       (grandparent_covid_deaths, ci = 0.95, method = "HDI")$CI_low,
+                                  grandparent_covid_deaths_high        = ci       (grandparent_covid_deaths, ci = 0.95, method = "HDI")$CI_high
+                                  
+                                  # grandparent_covid_deaths_low         = quantile (grandparent_covid_deaths,      0.025, na.rm = T),
+                                  # grandparent_covid_deaths_high        = quantile (grandparent_covid_deaths,      0.975, na.rm = T)
+                                  
                                   ),
                           by = .(ISO_code, Vaccine) ]
 
@@ -1573,6 +1608,7 @@ reduced_transmission <- 0.5   # 50% (social distancing will increase inter-pande
 
 # scenarios: high impact and low impact 
 for (impact in c("low", "high")) {
+# for (impact in c("high")) {
   
   # different suspension periods
   for (period in 1:length (suspension_periods)) {

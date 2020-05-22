@@ -5,9 +5,9 @@ suspending immunisation programmes in Africa during the COVID-19 pandemic.
 
 Folders:
 * code    - main program
-* data    - data files
-* figures - maps of results
-* tables  - results table including benefit-risk ratios
+* data    - data files (input)
+* figures - maps of results (output)
+* tables  - results table including benefit-risk ratios (output)
 
 - Run the program (epi_covid.R) from the code folder (source directory). 
 - The maps of results will be generated in figures folder.
