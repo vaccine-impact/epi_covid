@@ -61,10 +61,18 @@ risk_calculation <- function (visits,
   Pe <- P * (1 - theta)
   
   # print risk
+  print ("risk calculation")
   print (paste0 ("visits = ", visits, ", Pe = "))
   print (quantile (Pe, c(0.5, 0.025, 0.975)))
+  
+  # print prevalence (to address reviewer comment)
+  print ("prevalence")
+  print (quantile (po, c(0.5, 0.025, 0.975)))
 }
+# ------------------------------------------------------------------------------
 
+
+# ------------------------------------------------------------------------------
 # set seed
 set.seed (1)
 
@@ -73,3 +81,5 @@ risk_calculation (visits = 3)
 
 # each immunisation visit of EPI-2 and EPI-3
 risk_calculation (visits = 1)
+# ------------------------------------------------------------------------------
+
