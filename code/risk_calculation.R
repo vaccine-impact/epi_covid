@@ -68,6 +68,14 @@ risk_calculation <- function (visits,
   # print prevalence (to address reviewer comment)
   print ("prevalence")
   print (quantile (po, c(0.5, 0.025, 0.975)))
+  
+  # print theta -- proportion of SARS-CoV-2 infected population at the end of the study period
+  print ("theta -- proportion of SARS-CoV-2 infected population at the end of the study period")
+  print (quantile (theta, c(0.5, 0.025, 0.975)))
+  
+  # print Basic reproduction number for SARS-CoV-2
+  print ("Basic reproduction number for SARS-CoV-2")
+  print (quantile (Ro, c(0.5, 0.025, 0.975)))
 }
 # ------------------------------------------------------------------------------
 
