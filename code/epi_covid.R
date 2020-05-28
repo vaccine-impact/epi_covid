@@ -426,7 +426,7 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
   # duration of period at risk of SARS-CoV-2 ** in days **
   # uniform on -/+ 30 days from period that is passed in
   big_t <- suspension_period * 12 * 30                       
-  big_t <- runif  (n = psa, min = big_t-60, max = big_t) # *** modified to run from 4 - 6 months ***
+  big_t <- runif  (n = psa, min = big_t-30, max = big_t) # *** modified to run from 5 - 6 months ***
   
   # basic reproduction number for SARS-CoV-2
   r0    <- rgamma (n = psa, shape = 25, scale = (2.5/25))   
