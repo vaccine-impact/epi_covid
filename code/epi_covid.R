@@ -497,12 +497,55 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
 
   # ----------------------------------------------------------------------------
   # infection fatality rate for child, parents (adults), and grandparents (older adults)
-
-  ifr_child        <- rgamma (n = psa, shape = 0.5163, rate = 10000)  # assume ifr for age 0-9
-  ifr_parents      <- rgamma (n = psa, shape = 3.5485, rate = 10000)  # assume ifr for age 20-29
-  ifr_grandparents <- rgamma (n = psa, shape = 14.563, rate = 737.06) # assume ifr for age 60-69
-
+ 
+  # ifr_child        <- rgamma (n = psa, shape = 0.5163, rate = 10000)  # assume ifr for age 0-9
+  # ifr_parents      <- rgamma (n = psa, shape = 3.5485, rate = 10000)  # assume ifr for age 20-29
+  # ifr_grandparents <- rgamma (n = psa, shape = 14.563, rate = 737.06) # assume ifr for age 60-69
+  #
   # ----------------------------------------------------------------------------
+  # get shape and rate parameters for child, parents (adults), and grandparents (older adults)
+  #
+  # Source: Verity R, Okell LC, Dorigatti I, Winskill P, Whittaker C, Imai N, et al. 
+  # Estimates of the severity of coronavirus disease 2019: a model-based analysis. 
+  # Lancet Infect Dis. 2020; doi:10.1016/S1473-3099(20)30243-7
+  #
+  # note: these values are in percentages
+  #
+  # child 0-9 years -- proxy for less than 20 years old
+  parameters <- suppressMessages (suppressWarnings (get.gamma.par (p = c(0.025, 0.5, 0.975), 
+                                                                   q = c(0.000185, 0.00161, 0.0249), 
+                                                                   show.output = FALSE,
+                                                                   plot        = FALSE) ))
+  shape_child <- parameters ["shape"]
+  rate_child  <- parameters ["rate"]
+  
+  # adults 30-39 years -- proxy for 20-60 years old
+  parameters <- suppressMessages (suppressWarnings (get.gamma.par (p = c(0.025, 0.5, 0.975), 
+                                                                   q = c(0.0408, 0.0844, 0.185), 
+                                                                   show.output = FALSE,
+                                                                   plot        = FALSE) ))
+  shape_parents <- parameters ["shape"]
+  rate_parents  <- parameters ["rate"]
+  
+  # adults > 60 years
+  parameters <- suppressMessages (suppressWarnings (get.gamma.par (p = c(0.025, 0.5, 0.975), 
+                                                                   q = c(1.82, 3.28, 6.18), 
+                                                                   show.output = FALSE,
+                                                                   plot        = FALSE) ))
+  shape_grandparents <- parameters ["shape"]
+  rate_grandparents  <- parameters ["rate"]
+  
+  # infection fatality rate (percentages) for child, parents (adults), and grandparents (older adults)
+  ifr_child        <- rgamma (n = psa, shape = shape_child,        rate = rate_child)         
+  ifr_parents      <- rgamma (n = psa, shape = shape_parents,      rate = rate_parents)       
+  ifr_grandparents <- rgamma (n = psa, shape = shape_grandparents, rate = rate_grandparents)  
+  
+  # change infection fatality rate (percentages) to absolute values
+  ifr_child        <- ifr_child        / 100
+  ifr_parents      <- ifr_parents      / 100
+  ifr_grandparents <- ifr_grandparents / 100
+  # ----------------------------------------------------------------------------
+  
 
   # add a column for estimated covid-19 deaths due to continuing vaccination programmes
   # if infection is imported into household then assume the following become infected:
@@ -552,7 +595,6 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
     vaccine_covid_impact [Vaccine %in% c("Diphtheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3") & run_id == i,
                           child_covid_deaths :=
                             vac_population * risk_period [i] * pe_v3 [i] * ifr_child [i]]
-                          # vac_population * suspension_period * pe_v3 [i] * ifr_child [i]]
 
     vaccine_covid_impact [Vaccine %in% c("Diphtheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3") & run_id == i,
                           sibling_covid_deaths :=
@@ -1621,7 +1663,6 @@ measles_scenario <- function (vaccine_impact_psa,
 
 # start time
 print (Sys.time ())
-tic ()
 
 # move to base directory (run code from source directory)
 source_wd <- getwd ()
@@ -1646,6 +1687,8 @@ reduced_transmission <- 0.5   # 50% (social distancing will increase inter-pande
 # scenarios: high impact and low impact
 for (impact in c("low", "high")) {
 # for (impact in c("high")) {
+  
+  tic ()
 
   # different suspension periods
   for (period in 1:length (suspension_periods)) {
@@ -1750,6 +1793,8 @@ for (impact in c("low", "high")) {
     } # end -- for (age_group in age_groups)
 
   } # end -- for (period in 1:length (suspension_periods))
+  
+  toc ()
 
 } # end -- for (impact in c("high", "low"))
 
@@ -1758,5 +1803,4 @@ setwd (source_wd)
 
 # end time
 print (Sys.time ())
-toc ()
 # ------------------------------------------------------------------------------
