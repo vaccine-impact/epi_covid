@@ -25,13 +25,13 @@ risk_calculation <- function (visits,
   theta <- 1 - 1/Ro
   
   # Duration of period at risk for SARS-CoV-2
-  time_period_T <- runif (n = runs, min = 5*30, max = 7*30)
+  time_period_T <- runif (n = runs, min = 4*30, max = 6*30)
   
   # Duration of infectiousness
   infectious_period_psi <- rgamma (n = runs, shape = 14, scale = 7/14)
   
   # Average number of transmission relevant contacts of a community member per day
-  N <- runif (n = runs, min = 2, max = 10)
+  n <- runif (n = runs, min = 2, max = 10)
   
   # Risk ratio of a vaccinator being infected and infectious versus another community member
   iota_1 <- runif (n = runs, min = 1, max = 4)
@@ -49,7 +49,7 @@ risk_calculation <- function (visits,
   pv <- iota_1 * po
   
   # Probability of transmission given potentially infectious contact with community members
-  to <- Ro / (N * infectious_period_psi)
+  to <- Ro / (n * infectious_period_psi)
   
   # Probability of transmission given potentially infectious contact with vaccinators
   tv <- iota_2 * to 
@@ -78,6 +78,9 @@ risk_calculation <- function (visits,
   print (quantile (Ro, c(0.5, 0.025, 0.975)))
 }
 # ------------------------------------------------------------------------------
+
+
+
 
 
 # ------------------------------------------------------------------------------

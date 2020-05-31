@@ -218,17 +218,27 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
 
     for (country_code in unique (vaccine_impact [, ISO_code]) ) {
 
+      # Measles vaccine efficacy:
+      #   85% for the first dose when vaccinating before one year of age, 
+      #   95% after one year of age,
+      #   98% for two doses (Sudfeld et al 2010). 
+      #
+      # Vaccines are assumed to be all or nothing, and immunity lifelong. 
+      #
+      # Sudfeld CR, Navar AM, Halsey NA. Effectiveness of measles vaccination 
+      # and vitamin A treatment. Int J Epidemiol 2010;39(Suppl. 1):48-55. 
+      
       # vaccine_impact [ISO_code == country_code & Vaccine == "MCV2",
       #                 mid := (4/97) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", mid] ]
-
+  
       vaccine_impact [ISO_code == country_code & Vaccine == "MCV2",
-                      as.character (as.name (value)) := (4/97) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", eval (as.name (value))] ]
+                      as.character (as.name (value)) := (13/98) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", eval (as.name (value))] ]
 
       # vaccine_impact [ISO_code == country_code & Vaccine == "MCV1",
       #                 mid := (93/97) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", mid] ]
 
       vaccine_impact [ISO_code == country_code & Vaccine == "MCV1",
-                      as.character (as.name (value)) := (93/97) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", eval (as.name (value))] ]
+                      as.character (as.name (value)) := (85/98) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", eval (as.name (value))] ]
     }
   }
 
@@ -246,7 +256,6 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
   
   # add a small value to zero values to avoid log(0) = -Inf
   vaccine_impact [low == 0, low := 1e-6]
-  # ----------------------------------------------------------------------------
   
   # add run id
   vaccine_impact [, run_id := 0]
@@ -268,20 +277,24 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
   
   # estimate standard deviation in log scale for deaths averted per 1000 vaccinated individuals
   # mean is also estimates in log scale (~ mid value in log scale)
-
-  vaccine_impact [, sd_log := suppressMessages (suppressWarnings (get.lnorm.par (p = c (0.025, 0.5, 0.975), 
-                                             q = c (low, mid, high), 
-                                             show.output = FALSE,
-                                             plot        = FALSE) ["sdlog"]) ), 
-                  by = .(ISO_code, Vaccine)]
   
-  vaccine_impact [, mean_log := suppressMessages (suppressWarnings (get.lnorm.par (p = c (0.025, 0.5, 0.975), 
-                                               q = c (low, mid, high), 
-                                               show.output = FALSE,
-                                               plot        = FALSE) ["meanlog"]) ), 
+  # ----------------------------------------------------------------------------
+  
+  # log-normal distribution
+  
+  vaccine_impact [, sd_log := suppressMessages (suppressWarnings (get.lnorm.par (p = c (0.025, 0.5, 0.975),
+                                             q = c (low, mid, high),
+                                             show.output = FALSE,
+                                             plot        = FALSE) ["sdlog"]) ),
                   by = .(ISO_code, Vaccine)]
 
-
+  vaccine_impact [, mean_log := suppressMessages (suppressWarnings (get.lnorm.par (p = c (0.025, 0.5, 0.975),
+                                               q = c (low, mid, high),
+                                               show.output = FALSE,
+                                               plot        = FALSE) ["meanlog"]) ),
+                  by = .(ISO_code, Vaccine)]
+  # ----------------------------------------------------------------------------
+  
   # initialise psa data table
   vaccine_impact_psa <- vaccine_impact [0, ]
 
@@ -303,12 +316,17 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
   # note: mean_log is same value for a given ISO_code and Vaccine (similary for sd_log)
   # which is why mean (mean_log) is done to get one value
   # rlnorm will generate 'psa' number of values
+  # ----------------------------------------------------------------------------
+  
+  # based on lognormal distribution
+  
   vaccine_impact_psa [, vac_deaths_averted :=
                         vac_population * ((rlnorm (n      = psa,
                                                   meanlog = mean (mean_log),
                                                   sdlog   = mean (sd_log) )
                                            ) / 1000) * suspension_period,
                       by = .(ISO_code, Vaccine) ]
+  # ----------------------------------------------------------------------------
   
   # # update estimates for deaths averted by vaccination
   # vaccine_impact_psa [, vac_deaths_averted :=
@@ -424,9 +442,15 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
   # using distributions (for probabilistic sensitivity analysis)
 
   # duration of period at risk of SARS-CoV-2 ** in days **
-  # uniform on -/+ 30 days from period that is passed in
-  big_t <- suspension_period * 12 * 30                       
-  big_t <- runif  (n = psa, min = big_t-30, max = big_t+30) 
+  # uniform distribution (5 months, 6 months)
+  # big_t <- suspension_period * 12 * 30                       
+  # big_t <- runif  (n = psa, min = big_t-30, max = big_t+30) 
+  # T <- uniform (5 months, 6 months)
+  # 2020 leap year -- 366 days in the year
+  big_t <- runif  (n = psa, min = 5/12 * 366, max = 6/12 * 366)
+  
+  # duration of period at risk of SARS-CoV-2 ** in year units **
+  risk_period = big_t / 366
   
   # basic reproduction number for SARS-CoV-2
   r0    <- rgamma (n = psa, shape = 25, scale = (2.5/25))   
@@ -489,11 +513,11 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
   # (4) 2 adults over 60 adjusted for the proportion of households with members <20 years that
   #     also have a household member >60 years
 
-  vaccine_covid_impact [,child_covid_deaths        := 0]
-  vaccine_covid_impact [,sibling_covid_deaths      := 0]
-  vaccine_covid_impact [,parent_covid_deaths       := 0]
-  vaccine_covid_impact [,grandparent_covid_deaths  := 0]
-  vaccine_covid_impact [,covid_deaths              := 0]
+  vaccine_covid_impact [, child_covid_deaths        := 0]
+  vaccine_covid_impact [, sibling_covid_deaths      := 0]
+  vaccine_covid_impact [, parent_covid_deaths       := 0]
+  vaccine_covid_impact [, grandparent_covid_deaths  := 0]
+  vaccine_covid_impact [, covid_deaths              := 0]
 
   # also pass out psa parameter value
 
@@ -527,20 +551,21 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
     # antigens with 3 contacts
     vaccine_covid_impact [Vaccine %in% c("Diphtheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3") & run_id == i,
                           child_covid_deaths :=
-                            vac_population * suspension_period * pe_v3 [i] * ifr_child [i]]
+                            vac_population * risk_period [i] * pe_v3 [i] * ifr_child [i]]
+                          # vac_population * suspension_period * pe_v3 [i] * ifr_child [i]]
 
     vaccine_covid_impact [Vaccine %in% c("Diphtheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3") & run_id == i,
                           sibling_covid_deaths :=
-                            vac_population * suspension_period * pe_v3 [i] *
+                            vac_population * risk_period [i] * pe_v3 [i] *
                             (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child [i])]
 
     vaccine_covid_impact [Vaccine %in% c("Diphtheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3") & run_id == i,
                           parent_covid_deaths :=
-                            vac_population * suspension_period * pe_v3 [i] * 2 * ifr_parents [i]]
+                            vac_population * risk_period [i] * pe_v3 [i] * 2 * ifr_parents [i]]
 
     vaccine_covid_impact [Vaccine %in% c("Diphtheria (DTP3)", "Tetanus (DTP3)", "Pertussis (DTP3)", "HepB3", "Hib3", "PCV3") & run_id == i,
                           grandparent_covid_deaths :=
-                            vac_population * suspension_period * pe_v3 [i] *
+                            vac_population * risk_period [i] * pe_v3 [i] *
                             (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) *
                                ifr_grandparents [i])]
 
@@ -553,20 +578,20 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
     # antigens with 2 contacts
     vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem") & run_id == i,
                           child_covid_deaths :=
-                            vac_population * suspension_period * pe_v2 [i] * ifr_child [i]]
+                            vac_population * risk_period [i] * pe_v2 [i] * ifr_child [i]]
 
     vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem") & run_id == i,
                           sibling_covid_deaths :=
-                            vac_population * suspension_period * pe_v2 [i] *
+                            vac_population * risk_period [i] * pe_v2 [i] *
                             (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child [i])]
 
     vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem") & run_id == i,
                           parent_covid_deaths :=
-                            vac_population * suspension_period * pe_v2 [i] * 2 * ifr_parents [i]]
+                            vac_population * risk_period [i] * pe_v2 [i] * 2 * ifr_parents [i]]
 
     vaccine_covid_impact [Vaccine %in% c("RotaC","HPVfem") & run_id == i,
                           grandparent_covid_deaths :=
-                            vac_population * suspension_period * pe_v2 [i] *
+                            vac_population * risk_period [i] * pe_v2 [i] *
                             (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) *
                                ifr_grandparents [i])]
 
@@ -577,20 +602,20 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
     # antigens with 1 contacts
     vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA") & run_id == i,
                           child_covid_deaths :=
-                            vac_population * suspension_period * pe_v1 [i] * ifr_child [i]]
+                            vac_population * risk_period [i] * pe_v1 [i] * ifr_child [i]]
 
     vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA") & run_id == i,
                           sibling_covid_deaths :=
-                            vac_population * suspension_period * pe_v1 [i] *
+                            vac_population * risk_period [i] * pe_v1 [i] *
                             (((under_20_in_hh_at_least_one_under_20 - 1)/2) * ifr_child [i])]
 
     vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA") & run_id == i,
                           parent_covid_deaths :=
-                            vac_population * suspension_period * pe_v1 [i] * 2 * ifr_parents [i]]
+                            vac_population * risk_period [i] * pe_v1 [i] * 2 * ifr_parents [i]]
 
     vaccine_covid_impact [Vaccine %in% c("MCV1", "RCV1", "MCV2", "YFV", "MenA") & run_id == i,
                           grandparent_covid_deaths :=
-                            vac_population * suspension_period * pe_v1 [i] *
+                            vac_population * risk_period [i] * pe_v1 [i] *
                             (2 * (percent_hh_under_20_and_over_60/percent_hh_at_least_one_under_20) *
                                ifr_grandparents [i])]
 
@@ -610,6 +635,8 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
 #  regression model for tornado diagram
 tornado_regression <- function (benefit_risk_Africa,
                                 vaccine_covid_impact, 
+                                suspension_period_string,
+                                age_group,
                                 impact) {
 
   # generate dataset for regression
@@ -715,11 +742,15 @@ tornado_regression <- function (benefit_risk_Africa,
   tornado  <- tornado [(length (tornado [, 1]) - 11):length(tornado [, 1]), ]
   tornado2 <- tornado - median.qpp
 
+
   # ----------------------------------------------------------------------------
   # tornado plot
   # png (file = "figures/tornado.png", width = 3300, height = 1750)
   setEPS ()
-  postscript (file   = paste0 ("figures/tornado_", impact, ".eps"), 
+  postscript (file   = paste0 ("figures/Figure_tornado_", 
+                               suspension_period_string, "_suspension_",
+                               age_group, "_",
+                               impact, ".eps"), 
               width  = 50, 
               height = 26)
   
@@ -1224,6 +1255,7 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
 
       print (p)
       
+
       # --------------------------------------------------------------------------
       # save figure in eps format for paper 
       if ((br_ratio == "benefit_risk_ratio") & 
@@ -1231,7 +1263,10 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
         
         p <- p + labs (title = NULL, subtitle = NULL)
         
-        ggsave (filename = paste0 ("figures/Figure-benefit-risk-ratio_EPI_", impact, ".eps"),
+        ggsave (filename = paste0 ("figures/Figure_benefit-risk-ratio_EPI_",
+                                   suspension_period_string, "_suspension_",
+                                   age_group, "_",
+                                   impact, ".eps"),
                 plot = p) 
         # width = 6, height = 9.5, units="in")
       }
@@ -1560,18 +1595,19 @@ measles_scenario <- function (vaccine_impact_psa,
   # adjustment factors of vaccine impact
   # adjustment_mcv1 = (suspension_period / impact_period_mcv1) * outbreak_chance
   # adjustment_mcv2 = (suspension_period / impact_period_mcv2) * outbreak_chance
-  adjustment_mcv1 = outbreak_chance * reduced_transmission
-  adjustment_mcv2 = outbreak_chance * reduced_transmission
+  # adjustment_mcv1 = outbreak_chance * reduced_transmission
+  # adjustment_mcv2 = outbreak_chance * reduced_transmission
+  adjustment_mcv <- outbreak_chance * reduced_transmission
   
   # adjust vaccine impact
   vaccine_impact_psa [!(Vaccine == "MCV1" | Vaccine == "MCV2"), 
                       vac_deaths_averted := 0]
   
   vaccine_impact_psa [Vaccine == "MCV1", 
-                      vac_deaths_averted := vac_deaths_averted * adjustment_mcv1]
+                      vac_deaths_averted := vac_deaths_averted * adjustment_mcv]
   
   vaccine_impact_psa [Vaccine == "MCV2", 
-                      vac_deaths_averted := vac_deaths_averted * adjustment_mcv2]
+                      vac_deaths_averted := vac_deaths_averted * adjustment_mcv]
   
   return (vaccine_impact_psa)
 
@@ -1608,7 +1644,6 @@ reduced_transmission <- 0.5   # 50% (social distancing will increase inter-pande
 
 # scenarios: high impact and low impact 
 for (impact in c("low", "high")) {
-# for (impact in c("high")) {
   
   # different suspension periods
   for (period in 1:length (suspension_periods)) {
@@ -1703,14 +1738,16 @@ for (impact in c("low", "high")) {
                                  age_group = age_group,
                                  impact)
       
+      # produce tornado diagram
+      fit <- tornado_regression (benefit_risk_Africa, 
+                                 vaccine_covid_impact, 
+                                 suspension_period_string,
+                                 age_group = age_group,
+                                 impact)
+      
     } # end -- for (age_group in age_groups)
     
   } # end -- for (period in 1:length (suspension_periods))
-  
-  # produce tornado diagram
-  fit <- tornado_regression (benefit_risk_Africa, 
-                             vaccine_covid_impact, 
-                             impact)
   
 } # end -- for (impact in c("high", "low"))
 
