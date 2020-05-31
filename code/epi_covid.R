@@ -219,18 +219,18 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
     for (country_code in unique (vaccine_impact [, ISO_code]) ) {
 
       # Measles vaccine efficacy:
-      #   85% for the first dose when vaccinating before one year of age, 
+      #   85% for the first dose when vaccinating before one year of age,
       #   95% after one year of age,
-      #   98% for two doses (Sudfeld et al 2010). 
+      #   98% for two doses (Sudfeld et al 2010).
       #
-      # Vaccines are assumed to be all or nothing, and immunity lifelong. 
+      # Vaccines are assumed to be all or nothing, and immunity lifelong.
       #
-      # Sudfeld CR, Navar AM, Halsey NA. Effectiveness of measles vaccination 
-      # and vitamin A treatment. Int J Epidemiol 2010;39(Suppl. 1):48-55. 
-      
+      # Sudfeld CR, Navar AM, Halsey NA. Effectiveness of measles vaccination
+      # and vitamin A treatment. Int J Epidemiol 2010;39(Suppl. 1):48-55.
+
       # vaccine_impact [ISO_code == country_code & Vaccine == "MCV2",
       #                 mid := (4/97) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", mid] ]
-  
+
       vaccine_impact [ISO_code == country_code & Vaccine == "MCV2",
                       as.character (as.name (value)) := (13/98) * vaccine_impact [ISO_code == country_code & Vaccine == "MCV1", eval (as.name (value))] ]
 
@@ -244,19 +244,19 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
 
   # estimate deaths averted by each vaccine in each country
   vaccine_impact [, vac_deaths_averted := (vac_population * mid / 1000) * suspension_period]
-  
+
   # ----------------------------------------------------------------------------
   # minor changes to fit lognormal distribution
   #
   # drop rows with zero vaccine impact (Eswatini for RCV1)
   vaccine_impact <- vaccine_impact [!(low == 0 & mid == 0 & high == 0)]
-  
+
   # add a small 0.25% value to higher bounds where higher bound equals mid value (1 row -- Egypt/HepB3)
   vaccine_impact [mid == high, high := high * 1.0025]
-  
+
   # add a small value to zero values to avoid log(0) = -Inf
   vaccine_impact [low == 0, low := 1e-6]
-  
+
   # add run id
   vaccine_impact [, run_id := 0]
 
@@ -274,14 +274,14 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
 
   # estimate standard error in log scale for deaths averted per 1000 vaccinated individuals
   # vaccine_impact [, log_ci_se := (log (high) - log (low)) / 3.92]
-  
+
   # estimate standard deviation in log scale for deaths averted per 1000 vaccinated individuals
   # mean is also estimates in log scale (~ mid value in log scale)
-  
+
   # ----------------------------------------------------------------------------
-  
+
   # log-normal distribution
-  
+
   vaccine_impact [, sd_log := suppressMessages (suppressWarnings (get.lnorm.par (p = c (0.025, 0.5, 0.975),
                                              q = c (low, mid, high),
                                              show.output = FALSE,
@@ -294,7 +294,7 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
                                                plot        = FALSE) ["meanlog"]) ),
                   by = .(ISO_code, Vaccine)]
   # ----------------------------------------------------------------------------
-  
+
   # initialise psa data table
   vaccine_impact_psa <- vaccine_impact [0, ]
 
@@ -317,9 +317,9 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
   # which is why mean (mean_log) is done to get one value
   # rlnorm will generate 'psa' number of values
   # ----------------------------------------------------------------------------
-  
+
   # based on lognormal distribution
-  
+
   vaccine_impact_psa [, vac_deaths_averted :=
                         vac_population * ((rlnorm (n      = psa,
                                                   meanlog = mean (mean_log),
@@ -327,7 +327,7 @@ deaths_averted_vaccination <- function (vaccine_coverage_pop,
                                            ) / 1000) * suspension_period,
                       by = .(ISO_code, Vaccine) ]
   # ----------------------------------------------------------------------------
-  
+
   # # update estimates for deaths averted by vaccination
   # vaccine_impact_psa [, vac_deaths_averted :=
   #                       vac_population * ((rlnorm (n       = psa,
@@ -432,76 +432,76 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
   # big_n <- 5                             # av. no. of community member transmission relevant contacts per day
   # t0    <- r0/(big_n * psi)              # prob. transmission given potentially infectious community contact
   # tv    <- t0 * iota2                    # prob. transmission given potentially infectious vaccinator contact
-  # 
+  #
   # pe_v1_mid <- (1-((1-tv)^(2*1*pv)*(1-t0)^(2*1*n*p0)))*(1-theta) # excess household risk from 1 visit
   # pe_v2_mid <- (1-((1-tv)^(2*2*pv)*(1-t0)^(2*2*n*p0)))*(1-theta) # excess household risk from 2 visits
   # pe_v3_mid <- (1-((1-tv)^(2*3*pv)*(1-t0)^(2*3*n*p0)))*(1-theta) # excess household risk from 3 visits
-  
+
   # ----------------------------------------------------------------------------
   # infection risk from contacts due to vaccination visits
   # using distributions (for probabilistic sensitivity analysis)
 
   # duration of period at risk of SARS-CoV-2 ** in days **
   # uniform distribution (5 months, 6 months)
-  # big_t <- suspension_period * 12 * 30                       
-  # big_t <- runif  (n = psa, min = big_t-30, max = big_t+30) 
+  # big_t <- suspension_period * 12 * 30
+  # big_t <- runif  (n = psa, min = big_t-30, max = big_t+30)
   # T <- uniform (5 months, 6 months)
   # 2020 leap year -- 366 days in the year
   big_t <- runif  (n = psa, min = 5/12 * 366, max = 6/12 * 366)
-  
+
   # duration of period at risk of SARS-CoV-2 ** in year units **
   risk_period = big_t / 366
-  
+
   # basic reproduction number for SARS-CoV-2
-  r0    <- rgamma (n = psa, shape = 25, scale = (2.5/25))   
-  
+  r0    <- rgamma (n = psa, shape = 25, scale = (2.5/25))
+
   # proportion of SARS-CoV-2 infected population at the end of the study period
-  theta <- 1 - (1/r0)           
-  
+  theta <- 1 - (1/r0)
+
   # duration of infectiousness
-  psi   <- rgamma (psa, shape = 14, scale = (7/14))          
-  
-  # number of non-vaccinator contacts of child and carer during their travel to 
+  psi   <- rgamma (psa, shape = 14, scale = (7/14))
+
+  # number of non-vaccinator contacts of child and carer during their travel to
   # the vaccine clinic and in the waiting room
   n     <- runif  (n = psa, min = 1, max = 10)
-  
-  # risk ratio of a vaccinator being infected and infectious 
+
+  # risk ratio of a vaccinator being infected and infectious
   # versus another community member
   iota1 <- runif  (n = psa, min = 1, max = 4)
-  
-  # risk ratio per potentially infectious contact of a vaccinator transmitting 
+
+  # risk ratio per potentially infectious contact of a vaccinator transmitting
   # versus another community member
   iota2 <- runif  (n = psa, min = 0.25, max = 1)
-  
-  # prevalence of infectious community members on any given day 
+
+  # prevalence of infectious community members on any given day
   p0    <- (theta * psi) / big_t
-  
+
   # prevalence of infectious vaccinators on any given day
   pv    <- iota1 * p0
-  
+
   # average number of transmission relevant contacts of a community member per day
   big_n <- runif  (n = psa, min = 2, max = 10)
-  
+
   # probability of transmission given potentially infectious contact for other community members
   t0    <- r0 / (big_n * psi)
-  
+
   # probability of transmission given potentially infectious contact for vaccinators
   tv    <- iota2 * t0
-  
+
   # ----------------------------------------------------------------------------
   # excess household risk from vaccine clinic visits (1 or 2 or 3 visits)
-  
+
   pe_v1 <- (1 - ( (1 - tv)^(2*1*pv) * (1 - t0)^(2*1*p0*n) ) ) * (1 - theta)  # 1 visit
   pe_v2 <- (1 - ( (1 - tv)^(2*2*pv) * (1 - t0)^(2*2*p0*n) ) ) * (1 - theta)  # 2 visits
   pe_v3 <- (1 - ( (1 - tv)^(2*3*pv) * (1 - t0)^(2*3*p0*n) ) ) * (1 - theta)  # 3 visits
-  
+
   # ----------------------------------------------------------------------------
   # infection fatality rate for child, parents (adults), and grandparents (older adults)
-  
+
   ifr_child        <- rgamma (n = psa, shape = 0.5163, rate = 10000)  # assume ifr for age 0-9
   ifr_parents      <- rgamma (n = psa, shape = 3.5485, rate = 10000)  # assume ifr for age 20-29
   ifr_grandparents <- rgamma (n = psa, shape = 14.563, rate = 737.06) # assume ifr for age 60-69
-  
+
   # ----------------------------------------------------------------------------
 
   # add a column for estimated covid-19 deaths due to continuing vaccination programmes
@@ -634,7 +634,7 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
 # ------------------------------------------------------------------------------
 #  regression model for tornado diagram
 tornado_regression <- function (benefit_risk_Africa,
-                                vaccine_covid_impact, 
+                                vaccine_covid_impact,
                                 suspension_period_string,
                                 age_group,
                                 impact) {
@@ -650,7 +650,7 @@ tornado_regression <- function (benefit_risk_Africa,
   # bar <- vaccine_covid_impact %>%
   #   dplyr::group_by (run_id) %>%
   #   dplyr::select ("run_id" | starts_with ("param")) %>% distinct()
-  
+
   # parameters for covid impact psa
   bar <- vaccine_covid_impact %>%
     dplyr::group_by (run_id) %>%
@@ -660,59 +660,59 @@ tornado_regression <- function (benefit_risk_Africa,
   para <- para %>% select (-1) # remove run_id
 
   # tornado plot using linear regression
-  
-  para_names = c("Benefit risk ratio", 
-                 "Child deaths averted by routine immunisation", 
+
+  para_names = c("Benefit risk ratio",
+                 "Child deaths averted by routine immunisation",
                  "Duration of period at risk of SARS-nCoV-2",
-                 "Basic reproduction number for SARS-nCoV-2", 
+                 "Basic reproduction number for SARS-nCoV-2",
                  "Duration of infectiousness from SARS-nCoV-2",
                  "Number of non-vaccinator contacts \n of child and carer",
                  # "RR of vaccinator being infected and infectious",
                  # "RR of potentially infectious contact of a vaccinator transmitting",
-                 "Risk ratio of vaccinator being infected and \n infectious versus community member", 
-                 "Risk ratio per potentially infectious contact of \n vaccinator transmitting vs community member", 
+                 "Risk ratio of vaccinator being infected and \n infectious versus community member",
+                 "Risk ratio per potentially infectious contact of \n vaccinator transmitting vs community member",
                  "Transmission relevant contacts of \n community member per day",
-                 "Infection fatality rate for children", 
-                 "Infection fatality rate for adults", 
-                 "Infection fatality rate for older adults" 
+                 "Infection fatality rate for children",
+                 "Infection fatality rate for adults",
+                 "Infection fatality rate for older adults"
                  )
-  
-  
-  # para_names = c("Benefit risk ratio", 
-  #                "Child deaths averted by routine immunisation", 
+
+
+  # para_names = c("Benefit risk ratio",
+  #                "Child deaths averted by routine immunisation",
   #                "Duration of period at risk of SARS-nCoV-2",
-  #                "Basic reproduction number for SARS-nCoV-2", 
+  #                "Basic reproduction number for SARS-nCoV-2",
   #                "Duration of infectiousness from SARS-nCoV-2",
   #                "Number of non-vaccinator contacts of child and carer",
   #                # "RR of vaccinator being infected and infectious",
   #                # "RR of potentially infectious contact of a vaccinator transmitting",
-  #                "Risk ratio of vaccinator being infected and infectious vs community member", 
-  #                "Risk ratio per infectious contact of vaccinator transmitting vs community member", 
+  #                "Risk ratio of vaccinator being infected and infectious vs community member",
+  #                "Risk ratio per infectious contact of vaccinator transmitting vs community member",
   #                "Transmission relevant contacts of a community member per day",
-  #                "Infection fatality rate for a child", 
-  #                "Infection fatality rate for an adult", 
+  #                "Infection fatality rate for a child",
+  #                "Infection fatality rate for an adult",
   #                "Infection fatality rate for an older person")
-  
-  para = subset (para, 
-                   para [, 1] > quantile (para [, 1], 0.025) & 
+
+  para = subset (para,
+                   para [, 1] > quantile (para [, 1], 0.025) &
                    para [, 1] < quantile (para [, 1], 0.975)
                  )
 
   # currently using glm
-  
-  reg.fit <- glm (para[,1] ~ para [, 2] + 
-                    para [, 3]  + 
-                    para [, 4]  + 
-                    para [, 5]  + 
+
+  reg.fit <- glm (para[,1] ~ para [, 2] +
+                    para [, 3]  +
+                    para [, 4]  +
+                    para [, 5]  +
                     para [, 6]  +
-                    para [, 7]  + 
-                    para [, 8]  + 
-                    para [, 9]  + 
+                    para [, 7]  +
+                    para [, 8]  +
+                    para [, 9]  +
                     para [, 10] +
                     para [, 11] +
-                    para [, 12], 
+                    para [, 12],
                   family = "poisson")
-  
+
   # reg.fit <- lm(para[,1] ~ para[,2]+para[,3]+para[,4]+para[,5]+para[,6]+
   #                 para[,7]+para[,8]+para[,9]+para[,10]+para[,11]+para[,12])
 
@@ -732,7 +732,7 @@ tornado_regression <- function (benefit_risk_Africa,
 
   median.qpp <- exp (median.qpp) # comment out if using linear model
   tornado    <- exp (tornado)    # comment out if using linear model
-  
+
   rownames (tornado) <- para_names [2:12]
 
   tornado <- t (apply (tornado, 1, sort))
@@ -747,59 +747,59 @@ tornado_regression <- function (benefit_risk_Africa,
   # tornado plot
   # png (file = "figures/tornado.png", width = 3300, height = 1750)
   setEPS ()
-  postscript (file   = paste0 ("figures/Figure_tornado_", 
+  postscript (file   = paste0 ("figures/Figure_tornado_",
                                suspension_period_string, "_suspension_",
                                age_group, "_",
-                               impact, ".eps"), 
-              width  = 50, 
+                               impact, ".eps"),
+              width  = 50,
               height = 26)
-  
+
   layout (matrix (c(2,1,1), 1, 3, byrow = TRUE))
   par (mar = c(5, 0, 1, 1), cex = 1.2)
-  
-  barplot (tornado2 [, 1], 
-           width     = 1, 
-           horiz     = TRUE, 
-           offset    = median.qpp, 
-           space     = 0.5, 
+
+  barplot (tornado2 [, 1],
+           width     = 1,
+           horiz     = TRUE,
+           offset    = median.qpp,
+           space     = 0.5,
            names.arg = "",
-           xlim      = c(min (tornado [, 1]), max (tornado [, 2])), 
-           xlab      = "Benefit risk ratio", 
-           col       = "#92C5DE", 
+           xlim      = c(min (tornado [, 1]), max (tornado [, 2])),
+           xlab      = "Benefit risk ratio",
+           col       = "#92C5DE",
            cex.axis  = 2.75,
            cex.lab   = 3.5)
-  
-  barplot (tornado2 [, 2], 
-           width     = 1, 
-           horiz     = TRUE, 
-           add       = TRUE, 
-           offset    = median.qpp, 
-           space     = 0.5, 
-           names.arg = "", 
+
+  barplot (tornado2 [, 2],
+           width     = 1,
+           horiz     = TRUE,
+           add       = TRUE,
+           offset    = median.qpp,
+           space     = 0.5,
+           names.arg = "",
            col       = "#92C5DE",
            cex.axis  = 2.75)
-  
+
   rect (20000, -0.49, 30000, length (tornado[,1])-0.5, col = "gray", density = 20)
-  
+
   par (mar = c(5, 0, 1, 0))
-  
+
   plot (0, 0, type="c",
         xlim  = c (0, 1),
         ylim  = c (0, length(tornado [, 1])),
         frame = FALSE,
-        axes  = FALSE, 
-        xlab  = "", 
+        axes  = FALSE,
+        xlab  = "",
         ylab  = "")
-  
-  text (x      = 1, 
-        y      = seq (length (tornado [,1]) - 0.5, 0.5), 
-        labels = rev (rownames (tornado)), 
-        pos    = 2, 
+
+  text (x      = 1,
+        y      = seq (length (tornado [,1]) - 0.5, 0.5),
+        labels = rev (rownames (tornado)),
+        pos    = 2,
         cex    = 3.55)
-  
+
   dev.off ()  # save tornado plot
   # ----------------------------------------------------------------------------
-  
+
   return (reg.fit)
 
 } # end of function -- tornado_regression
@@ -1049,87 +1049,87 @@ benefit_risk_ratio_Africa <- function (vaccine_covid_impact,
 benefit_risk_ratio_summary <- function (benefit_risk) {
 
   benefit_risk_summary <- benefit_risk
-  
+
   # estimate benefit-risk ratios among different groups
   # median and credible intervals
   benefit_risk_summary <-
     benefit_risk_summary [, list (benefit_risk_ratio                  = quantile (benefit_risk_ratio,             0.5,   na.rm = T),
                                   benefit_risk_ratio_low              = ci       (benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_low,
                                   benefit_risk_ratio_high             = ci       (benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_high,
-                                  
+
                                   # benefit_risk_ratio_low              = quantile (benefit_risk_ratio,             0.025, na.rm = T),
                                   # benefit_risk_ratio_high             = quantile (benefit_risk_ratio,             0.975, na.rm = T),
 
                                   child_benefit_risk_ratio            = quantile (child_benefit_risk_ratio,       0.5,   na.rm = T),
                                   child_benefit_risk_ratio_low        = ci       (child_benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_low,
                                   child_benefit_risk_ratio_high       = ci       (child_benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_high,
-                                  
+
                                   # child_benefit_risk_ratio_low        = quantile (child_benefit_risk_ratio,       0.025, na.rm = T),
                                   # child_benefit_risk_ratio_high       = quantile (child_benefit_risk_ratio,       0.975, na.rm = T),
 
                                   sibling_benefit_risk_ratio          = quantile (sibling_benefit_risk_ratio,     0.5,   na.rm = T),
                                   sibling_benefit_risk_ratio_low      = ci       (sibling_benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_low,
                                   sibling_benefit_risk_ratio_high     = ci       (sibling_benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_high,
-                                  
+
                                   # sibling_benefit_risk_ratio_low      = quantile (sibling_benefit_risk_ratio,     0.025, na.rm = T),
                                   # sibling_benefit_risk_ratio_high     = quantile (sibling_benefit_risk_ratio,     0.975, na.rm = T),
 
                                   parent_benefit_risk_ratio           = quantile (parent_benefit_risk_ratio,      0.5,   na.rm = T),
                                   parent_benefit_risk_ratio_low       = ci       (parent_benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_low,
                                   parent_benefit_risk_ratio_high      = ci       (parent_benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_high,
-                                  
+
                                   # parent_benefit_risk_ratio_low       = quantile (parent_benefit_risk_ratio,      0.025, na.rm = T),
                                   # parent_benefit_risk_ratio_high      = quantile (parent_benefit_risk_ratio,      0.975, na.rm = T),
-                                  
+
                                   grandparent_benefit_risk_ratio      = quantile (grandparent_benefit_risk_ratio, 0.5,   na.rm = T),
                                   grandparent_benefit_risk_ratio_low  = ci       (grandparent_benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_low,
                                   grandparent_benefit_risk_ratio_high = ci       (grandparent_benefit_risk_ratio, ci = 0.95, method = "HDI")$CI_high,
-                                  
+
                                   # grandparent_benefit_risk_ratio_low  = quantile (grandparent_benefit_risk_ratio, 0.025, na.rm = T),
                                   # grandparent_benefit_risk_ratio_high = quantile (grandparent_benefit_risk_ratio, 0.975, na.rm = T),
 
                                   vac_deaths_averted                  = quantile (vac_deaths_averted,             0.5,   na.rm = T),
                                   vac_deaths_averted_low              = ci       (vac_deaths_averted, ci = 0.95, method = "HDI")$CI_low,
                                   vac_deaths_averted_high             = ci       (vac_deaths_averted, ci = 0.95, method = "HDI")$CI_high,
-                                  
+
                                   # vac_deaths_averted_low              = quantile (vac_deaths_averted,             0.025, na.rm = T),
                                   # vac_deaths_averted_high             = quantile (vac_deaths_averted,             0.975, na.rm = T),
 
                                   covid_deaths                         = quantile (covid_deaths,                  0.5,   na.rm = T),
                                   covid_deaths_low                     = ci       (covid_deaths, ci = 0.95, method = "HDI")$CI_low,
                                   covid_deaths_high                    = ci       (covid_deaths, ci = 0.95, method = "HDI")$CI_high,
-                                  
+
                                   # covid_deaths_low                     = quantile (covid_deaths,                  0.025, na.rm = T),
                                   # covid_deaths_high                    = quantile (covid_deaths,                  0.975, na.rm = T),
 
                                   child_covid_deaths                  = quantile (child_covid_deaths,             0.5,   na.rm = T),
                                   child_covid_deaths_low              = ci       (child_covid_deaths, ci = 0.95, method = "HDI")$CI_low,
                                   child_covid_deaths_high             = ci       (child_covid_deaths, ci = 0.95, method = "HDI")$CI_high,
-                                  
+
                                   # child_covid_deaths_low              = quantile (child_covid_deaths,             0.025, na.rm = T),
                                   # child_covid_deaths_high             = quantile (child_covid_deaths,             0.975, na.rm = T),
 
                                   sibling_covid_deaths                = quantile (sibling_covid_deaths,           0.5,   na.rm = T),
                                   sibling_covid_deaths_low            = ci       (sibling_covid_deaths, ci = 0.95, method = "HDI")$CI_low,
                                   sibling_covid_deaths_high           = ci       (sibling_covid_deaths, ci = 0.95, method = "HDI")$CI_high,
-                                  
+
                                   # sibling_covid_deaths_low            = quantile (sibling_covid_deaths,           0.025, na.rm = T),
                                   # sibling_covid_deaths_high           = quantile (sibling_covid_deaths,           0.975, na.rm = T),
 
                                   parent_covid_deaths                  = quantile (parent_covid_deaths,           0.5,   na.rm = T),
                                   parent_covid_deaths_low              = ci       (parent_covid_deaths, ci = 0.95, method = "HDI")$CI_low,
                                   parent_covid_deaths_high             = ci       (parent_covid_deaths, ci = 0.95, method = "HDI")$CI_high,
-                                  
+
                                   # parent_covid_deaths_low              = quantile (parent_covid_deaths,           0.025, na.rm = T),
                                   # parent_covid_deaths_high             = quantile (parent_covid_deaths,           0.975, na.rm = T),
 
                                   grandparent_covid_deaths             = quantile (grandparent_covid_deaths,      0.5,   na.rm = T),
                                   grandparent_covid_deaths_low         = ci       (grandparent_covid_deaths, ci = 0.95, method = "HDI")$CI_low,
                                   grandparent_covid_deaths_high        = ci       (grandparent_covid_deaths, ci = 0.95, method = "HDI")$CI_high
-                                  
+
                                   # grandparent_covid_deaths_low         = quantile (grandparent_covid_deaths,      0.025, na.rm = T),
                                   # grandparent_covid_deaths_high        = quantile (grandparent_covid_deaths,      0.975, na.rm = T)
-                                  
+
                                   ),
                           by = .(ISO_code, Vaccine) ]
 
@@ -1143,7 +1143,7 @@ benefit_risk_ratio_summary <- function (benefit_risk) {
 # generate map of benefit risk ratio
 benefit_risk_ratio_map <- function (benefit_risk_summary,
                                     suspension_period_string,
-                                    age_group, 
+                                    age_group,
                                     impact) {
   # file to save plots
   pdf (paste0 ("figures/benefit_risk_ratio_maps_",
@@ -1254,24 +1254,24 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
 
 
       print (p)
-      
+
 
       # --------------------------------------------------------------------------
-      # save figure in eps format for paper 
-      if ((br_ratio == "benefit_risk_ratio") & 
+      # save figure in eps format for paper
+      if ((br_ratio == "benefit_risk_ratio") &
           (vaccine == "DTP3, HepB3, Hib3, PCV3, RotaC, MCV1, RCV1, MenA, YFV, MCV2")) {
-        
+
         p <- p + labs (title = NULL, subtitle = NULL)
-        
+
         ggsave (filename = paste0 ("figures/Figure_benefit-risk-ratio_EPI_",
                                    suspension_period_string, "_suspension_",
                                    age_group, "_",
                                    impact, ".eps"),
-                plot = p) 
+                plot = p)
         # width = 6, height = 9.5, units="in")
       }
       # --------------------------------------------------------------------------
-      
+
     } # end -- for (vaccine in vaccines)
 
   } # end -- for (br_ratio in br_ratios)
@@ -1291,7 +1291,7 @@ save_benefit_risk_results <- function (benefit_risk,
                                        benefit_risk_summary_Africa,
                                        suspension_period,
                                        suspension_period_string,
-                                       age_group, 
+                                       age_group,
                                        impact) {
 
   # ----------------------------------------------------------------------------
@@ -1299,8 +1299,8 @@ save_benefit_risk_results <- function (benefit_risk,
   fwrite (benefit_risk, file = paste0 ("tables/benefit_risk_results_",
                                        suspension_period_string,
                                        "_suspension_",
-                                       age_group, "_", 
-                                       impact, 
+                                       age_group, "_",
+                                       impact,
                                        ".csv") )
   # ----------------------------------------------------------------------------
 
@@ -1309,8 +1309,8 @@ save_benefit_risk_results <- function (benefit_risk,
   fwrite (benefit_risk_summary , file = paste0 ("tables/benefit_risk_summary_results_",
                                                 suspension_period_string,
                                                 "_suspension_",
-                                                age_group, "_", 
-                                                impact, 
+                                                age_group, "_",
+                                                impact,
                                                 ".csv") )
 
   # save benefit-risk results summary -- country level -- for paper
@@ -1376,8 +1376,8 @@ save_benefit_risk_results <- function (benefit_risk,
           paste0 ("tables/Table_benefit_risk_summary_results_",
                   suspension_period_string,
                   "_suspension_",
-                  age_group, "_", 
-                  impact, 
+                  age_group, "_",
+                  impact,
                   ".csv"),
           col.names = T, row.names = F)
 
@@ -1388,8 +1388,8 @@ save_benefit_risk_results <- function (benefit_risk,
   fwrite (benefit_risk_summary_Africa , file = paste0 ("tables/benefit_risk_summary_Africa_results_",
                                                        suspension_period_string,
                                                        "_suspension_",
-                                                       age_group, "_", 
-                                                       impact, 
+                                                       age_group, "_",
+                                                       impact,
                                                        ".csv") )
 
   # save benefit-risk results summary -- continent level -- for paper
@@ -1450,8 +1450,8 @@ save_benefit_risk_results <- function (benefit_risk,
           paste0 ("tables/Table_benefit_risk_summary_Africa_results_",
                   suspension_period_string,
                   "_suspension_",
-                  age_group, "_", 
-                  impact, 
+                  age_group, "_",
+                  impact,
                   ".csv"),
           col.names = T, row.names = F)
   # ----------------------------------------------------------------------------
@@ -1489,11 +1489,11 @@ save_benefit_risk_results <- function (benefit_risk,
   dt [, ':=' ('Deaths averted by vaccination' = paste0 (comma (vac_deaths_averted), " (",
                                                         comma (vac_deaths_averted_low), "-",
                                                         comma (vac_deaths_averted_high), ")"),
-              
+
               'Excess Covid-19 deaths' = paste0 (comma (covid_deaths), " (",
                                                  comma (covid_deaths_low), "-",
                                                  comma (covid_deaths_high), ")"),
-              
+
               'Benefit-risk ratio' = paste0 (comma (benefit_risk_ratio), " (",
                                              comma (benefit_risk_ratio_low), "-",
                                              comma (benefit_risk_ratio_high), ")")
@@ -1510,61 +1510,61 @@ save_benefit_risk_results <- function (benefit_risk,
           paste0 ("tables/Table_benefits_risks_benefit_risk_ratios_summary_Africa_results_",
                   suspension_period_string,
                   "_suspension_",
-                  age_group, "_", 
-                  impact, 
+                  age_group, "_",
+                  impact,
                   ".csv"),
           col.names = T, row.names = F)
 
 
   # ----------------------------------------------------------------------------
-  
+
   # ----------------------------------------------------------------------------
   # save -- combined vaccine benefits and risks at country level
-  dt <- benefit_risk_summary [Vaccine == "DTP3, HepB3, Hib3, PCV3, RotaC, MCV1, RCV1, MenA, YFV, MCV2", 
+  dt <- benefit_risk_summary [Vaccine == "DTP3, HepB3, Hib3, PCV3, RotaC, MCV1, RCV1, MenA, YFV, MCV2",
                               lapply (.SD, round, 1),
                               .SDcols = c("benefit_risk_ratio",
                                           "benefit_risk_ratio_low",
                                           "benefit_risk_ratio_high",
-                                          
+
                                           "vac_deaths_averted",
                                           "vac_deaths_averted_low",
                                           "vac_deaths_averted_high",
-                                          
+
                                           "covid_deaths",
                                           "covid_deaths_low",
                                           "covid_deaths_high"
                               ),
                               by = .(Country)]
-  
+
   dt [, ':=' ('Deaths averted by vaccination' = paste0 (comma (vac_deaths_averted), " (",
                                                         comma (vac_deaths_averted_low), "-",
                                                         comma (vac_deaths_averted_high), ")"),
-              
+
               'Excess Covid-19 deaths' = paste0 (comma (covid_deaths), " (",
                                                  comma (covid_deaths_low), "-",
                                                  comma (covid_deaths_high), ")"),
-              
+
               'Benefit-risk ratio' = paste0 (comma (benefit_risk_ratio), " (",
                                              comma (benefit_risk_ratio_low), "-",
                                              comma (benefit_risk_ratio_high), ")")
               ) ]
-  
+
   # keep requisite columns
   dt <- dt [, c("Country",
                 "Deaths averted by vaccination",
                 "Excess Covid-19 deaths",
                 "Benefit-risk ratio")]
-  
+
   fwrite (dt,
           paste0 ("tables/Table_benefits_risks_benefit_risk_ratios_summary_country_level_results_",
                   suspension_period_string,
                   "_suspension_",
-                  age_group, "_", 
-                  impact, 
+                  age_group, "_",
+                  impact,
                   ".csv"),
           col.names = T, row.names = F)
-  
-  
+
+
   # ----------------------------------------------------------------------------
 
 
@@ -1577,38 +1577,38 @@ save_benefit_risk_results <- function (benefit_risk,
 # ------------------------------------------------------------------------------
 # adjust vaccine impact estimates for pessimistic measles scenario
 # ------------------------------------------------------------------------------
-measles_scenario <- function (vaccine_impact_psa, 
-                              suspension_period, 
+measles_scenario <- function (vaccine_impact_psa,
+                              suspension_period,
                               outbreak_chance,
                               reduced_transmission) {
 
-  # reduced transmission due to social distancing will increase the inter-pandemic 
-  # period. Hence it will decrease the chance of an outbreak - hence we could 
+  # reduced transmission due to social distancing will increase the inter-pandemic
+  # period. Hence it will decrease the chance of an outbreak - hence we could
   # assume that it will further half the chance of an outbreak
-  
+
   # time since vaccination to 5 years of age
   # mcv1 vaccination at 9 months of age
   # mcv2 vaccination at 15-18 months of age
   # impact_period_mcv1 <- (60 - 9)         / 12
   # impact_period_mcv2 <- (60 - (15+18)/2) / 12
-  
+
   # adjustment factors of vaccine impact
   # adjustment_mcv1 = (suspension_period / impact_period_mcv1) * outbreak_chance
   # adjustment_mcv2 = (suspension_period / impact_period_mcv2) * outbreak_chance
   # adjustment_mcv1 = outbreak_chance * reduced_transmission
   # adjustment_mcv2 = outbreak_chance * reduced_transmission
   adjustment_mcv <- outbreak_chance * reduced_transmission
-  
+
   # adjust vaccine impact
-  vaccine_impact_psa [!(Vaccine == "MCV1" | Vaccine == "MCV2"), 
+  vaccine_impact_psa [!(Vaccine == "MCV1" | Vaccine == "MCV2"),
                       vac_deaths_averted := 0]
-  
-  vaccine_impact_psa [Vaccine == "MCV1", 
+
+  vaccine_impact_psa [Vaccine == "MCV1",
                       vac_deaths_averted := vac_deaths_averted * adjustment_mcv]
-  
-  vaccine_impact_psa [Vaccine == "MCV2", 
+
+  vaccine_impact_psa [Vaccine == "MCV2",
                       vac_deaths_averted := vac_deaths_averted * adjustment_mcv]
-  
+
   return (vaccine_impact_psa)
 
 } # end of function -- measles_scenario
@@ -1642,93 +1642,93 @@ suspension_period_strings <- c ("6 months")
 outbreak_chance      <- 0.25  # 25%
 reduced_transmission <- 0.5   # 50% (social distancing will increase inter-pandemic period)
 
-# scenarios: high impact and low impact 
+# scenarios: high impact and low impact
 for (impact in c("low", "high")) {
-  
+
   # different suspension periods
   for (period in 1:length (suspension_periods)) {
-    
+
     # set suspension period
     suspension_period        <- suspension_periods        [period]
     suspension_period_string <- suspension_period_strings [period]
-    
+
     # age group for vaccine impact -- "all" or "under5" age groups
     # age_groups <- c("under5", "all")
     age_groups <- c("under5")
-    
+
     # age group for vaccine impact -- "all" or "under5" age groups
     for (age_group in age_groups) {
-      
+
       # extract vaccine coverage estimates for 2018 from WHO for 54 African countries
       vaccine_coverage <- get_vaccine_coverage (age_group)
-      
+
       # add population estimates from UNWPP 2019
       vaccine_coverage_pop <- add_population (vaccine_coverage)
-      
+
       # add UN household size data from DHS / IPUMS
       vaccine_coverage_pop_hh <- add_hh_size_data (vaccine_coverage_pop)
-      
+
       # add deaths averted by vaccination among "all" or "under5" age groups
       vaccine_impact_psa <- deaths_averted_vaccination (vaccine_coverage_pop_hh,
                                                         age_group = age_group,
                                                         suspension_period,
                                                         psa)
-      
+
       # low impact scenario
       # adjust vaccine impact estimates for pessimistic measles scenario
       if (impact == "low") {
-        
-        vaccine_impact_psa <- measles_scenario (vaccine_impact_psa, 
-                                                suspension_period, 
-                                                outbreak_chance, 
+
+        vaccine_impact_psa <- measles_scenario (vaccine_impact_psa,
+                                                suspension_period,
+                                                outbreak_chance,
                                                 reduced_transmission)
       }
-      
+
       # estimate potential deaths due to covid-19 by continuing vaccination programmes
       vaccine_covid_impact <- estimate_covid_deaths (vaccine_impact_psa,
                                                      suspension_period,
                                                      psa)
-      
+
       # --------------------------------------------------------------------------
       # estimate benefit risk ratio
       # country level
       benefit_risk <- benefit_risk_ratio (vaccine_covid_impact,
                                           suspension_period)
-      
+
       # continental level
       benefit_risk_Africa <- benefit_risk_ratio_Africa (vaccine_covid_impact,
                                                         suspension_period)
       # --------------------------------------------------------------------------
-      
+
       # --------------------------------------------------------------------------
       # estimate benefit risk ratio -- summary estimates (median, credible intervals)
       # country level
       benefit_risk_summary <- benefit_risk_ratio_summary (benefit_risk)
-      
+
       # add country names
       benefit_risk_summary [, Country := countrycode (sourcevar   = ISO_code,
                                                       origin      = "iso3c",
                                                       destination = "country.name")]
       # set column order
       setcolorder (benefit_risk_summary, "Country")
-      
+
       # continental level
       # rename Continent column to ISO_code
       setnames (benefit_risk_Africa, "Continent", "ISO_code")
-      
+
       # estimate benefit risk ratio -- summary estimates (median, credible intervals)
       benefit_risk_summary_Africa <- benefit_risk_ratio_summary (benefit_risk_Africa)
-      
+
       # rename ISO_code column back to Continent
       setnames (benefit_risk_summary_Africa, "ISO_code", "Continent")
       # --------------------------------------------------------------------------
-      
+
       # generate map of benefit risk ratio
       benefit_risk_ratio_map (benefit_risk_summary,
                               suspension_period_string,
-                              age_group = age_group, 
+                              age_group = age_group,
                               impact)
-      
+
       # save benefit-risk results
       save_benefit_risk_results (benefit_risk,
                                  benefit_risk_summary,
@@ -1737,18 +1737,18 @@ for (impact in c("low", "high")) {
                                  suspension_period_string,
                                  age_group = age_group,
                                  impact)
-      
+
       # produce tornado diagram
-      fit <- tornado_regression (benefit_risk_Africa, 
-                                 vaccine_covid_impact, 
+      fit <- tornado_regression (benefit_risk_Africa,
+                                 vaccine_covid_impact,
                                  suspension_period_string,
                                  age_group = age_group,
                                  impact)
-      
+
     } # end -- for (age_group in age_groups)
-    
+
   } # end -- for (period in 1:length (suspension_periods))
-  
+
 } # end -- for (impact in c("high", "low"))
 
 # return to source directory
