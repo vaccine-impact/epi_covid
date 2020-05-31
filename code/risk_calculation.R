@@ -15,6 +15,8 @@ rm (list = ls ())
 risk_calculation <- function (visits, 
                               runs = 100000) {
   
+  cat (paste0 ("\n\n", "visits = ", visits, "\n\n"))
+  
   # Basic reproduction number for SARS-CoV-2
   Ro <- rgamma (n = runs, shape = 25, scale = 2.5/25)
   
@@ -25,13 +27,13 @@ risk_calculation <- function (visits,
   theta <- 1 - 1/Ro
   
   # Duration of period at risk for SARS-CoV-2
-  time_period_T <- runif (n = runs, min = 4*30, max = 6*30)
+  time_period_T <- runif (n = runs, min = 5/12 * 366, max = 6/12 * 366)
   
   # Duration of infectiousness
   infectious_period_psi <- rgamma (n = runs, shape = 14, scale = 7/14)
   
   # Average number of transmission relevant contacts of a community member per day
-  n <- runif (n = runs, min = 2, max = 10)
+  N <- runif (n = runs, min = 2, max = 10)
   
   # Risk ratio of a vaccinator being infected and infectious versus another community member
   iota_1 <- runif (n = runs, min = 1, max = 4)
@@ -49,7 +51,7 @@ risk_calculation <- function (visits,
   pv <- iota_1 * po
   
   # Probability of transmission given potentially infectious contact with community members
-  to <- Ro / (n * infectious_period_psi)
+  to <- Ro / (N * infectious_period_psi)
   
   # Probability of transmission given potentially infectious contact with vaccinators
   tv <- iota_2 * to 
@@ -60,14 +62,13 @@ risk_calculation <- function (visits,
   # Probability for excess SARS-CoV-2 infection for the whole household of a child who gets vaccinated
   Pe <- P * (1 - theta)
   
-  # print risk
-  print ("risk calculation")
-  print (paste0 ("visits = ", visits, ", Pe = "))
-  print (quantile (Pe, c(0.5, 0.025, 0.975)))
-  
   # print prevalence (to address reviewer comment)
-  print ("prevalence")
+  print ("prevalence (po)")
   print (quantile (po, c(0.5, 0.025, 0.975)))
+  
+  print ("prevalence (pv)")
+  print (quantile (pv, c(0.5, 0.025, 0.975)))
+  
   
   # print theta -- proportion of SARS-CoV-2 infected population at the end of the study period
   print ("theta -- proportion of SARS-CoV-2 infected population at the end of the study period")
@@ -76,6 +77,28 @@ risk_calculation <- function (visits,
   # print Basic reproduction number for SARS-CoV-2
   print ("Basic reproduction number for SARS-CoV-2")
   print (quantile (Ro, c(0.5, 0.025, 0.975)))
+  
+  # print Duration of infectiousness
+  print ("# Duration of infectiousness")
+  print (quantile (infectious_period_psi, c(0.5, 0.025, 0.975)))
+  
+  # print Probability for SARS-CoV-2 infection for the whole household of a child who gets vaccinated
+  print ("P - Probability for SARS-CoV-2 infection for the whole household of a child who gets vaccinated")
+  print (quantile (P, c(0.5, 0.025, 0.975)))
+  
+  # print Probability for excess SARS-CoV-2 infection for the whole household of a child who gets vaccinated
+  print ("Pe - Probability for excess SARS-CoV-2 infection for the whole household of a child who gets vaccinated")
+  print (paste0 ("visits = ", visits, ", Pe = "))
+  print (quantile (Pe, c(0.5, 0.025, 0.975)))
+  
+  # print Probability of transmission given potentially infectious contact with community members
+  print ("to - Probability of transmission given potentially infectious contact with community members")
+  print (quantile (to, c(0.5, 0.025, 0.975)))
+  
+  # print Probability of transmission given potentially infectious contact with vaccinators
+  print ("tv - Probability of transmission given potentially infectious contact with vaccinators")
+  print (quantile (tv, c(0.5, 0.025, 0.975)))
+  
 }
 # ------------------------------------------------------------------------------
 

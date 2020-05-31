@@ -663,9 +663,9 @@ tornado_regression <- function (benefit_risk_Africa,
 
   para_names = c("Benefit risk ratio",
                  "Child deaths averted by routine immunisation",
-                 "Duration of period at risk of SARS-nCoV-2",
-                 "Basic reproduction number for SARS-nCoV-2",
-                 "Duration of infectiousness from SARS-nCoV-2",
+                 "Duration of period at risk of SARS-CoV-2",
+                 "Basic reproduction number for SARS-CoV-2",
+                 "Duration of infectiousness from SARS-CoV-2",
                  "Number of non-vaccinator contacts \n of child and carer",
                  # "RR of vaccinator being infected and infectious",
                  # "RR of potentially infectious contact of a vaccinator transmitting",
@@ -1629,6 +1629,7 @@ setwd ("../")
 
 set.seed (1)  # seed for random number generator
 psa <- 4000   # number of runs for probabilistic sensitivity analysis
+# psa <- 50
 
 suspension_periods        <- c ( 6/12)  # unit in year
 suspension_period_strings <- c ("6 months")
@@ -1644,6 +1645,7 @@ reduced_transmission <- 0.5   # 50% (social distancing will increase inter-pande
 
 # scenarios: high impact and low impact
 for (impact in c("low", "high")) {
+# for (impact in c("high")) {
 
   # different suspension periods
   for (period in 1:length (suspension_periods)) {
