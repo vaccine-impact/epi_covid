@@ -105,19 +105,73 @@ risk_calculation <- function (visits,
 
 # ------------------------------------------------------------------------------
 # function - to calculate infection fatality rates from Verity paper
-ifr <- function () {
+ifr <- function (runs = 100000) {
   
-  # child
-  # 0-9 years (Verity) -- note these values are in percentages
-  get.gamma.par (p = c (0.025, 0.5, 0.975), q = c(0.000185, 0.00161, 0.0249))["shape"]
-  get.gamma.par (p = c (0.025, 0.5, 0.975), q = c(0.000185, 0.00161, 0.0249))["rate"]
+  psa <- runs
   
-  # adults
-  # 30-39 years (Verity)
-  get.gamma.par (p = c (0.025, 0.5, 0.975), q = c(0.0408, 0.0844, 0.185))
+  # ----------------------------------------------------------------------------
+  # get shape and rate parameters for child, parents (adults), and grandparents (older adults)
+  #
+  # Source: Verity R, Okell LC, Dorigatti I, Winskill P, Whittaker C, Imai N, et al. 
+  # Estimates of the severity of coronavirus disease 2019: a model-based analysis. 
+  # Lancet Infect Dis. 2020; doi:10.1016/S1473-3099(20)30243-7
+  #
+  # note: these values are in percentages
+  #
+  # child 0-9 years -- proxy for less than 20 years old
+  parameters <- suppressMessages (suppressWarnings (get.gamma.par (p = c(0.025, 0.5, 0.975), 
+                                                                   q = c(0.000185, 0.00161, 0.0249), 
+                                                                   show.output = FALSE,
+                                                                   plot        = FALSE) ))
+  shape_child <- parameters ["shape"]
+  rate_child  <- parameters ["rate"]
   
-  # older adults
-  get.gamma.par (p = c (0.025, 0.5, 0.975), q = c(1.82, 3.28, 6.18))
+  # adults 30-39 years -- proxy for 20-60 years old
+  parameters <- suppressMessages (suppressWarnings (get.gamma.par (p = c(0.025, 0.5, 0.975), 
+                                                                   q = c(0.0408, 0.0844, 0.185), 
+                                                                   show.output = FALSE,
+                                                                   plot        = FALSE) ))
+  shape_parents <- parameters ["shape"]
+  rate_parents  <- parameters ["rate"]
+  
+  # adults > 60 years
+  parameters <- suppressMessages (suppressWarnings (get.gamma.par (p = c(0.025, 0.5, 0.975), 
+                                                                   q = c(1.82, 3.28, 6.18), 
+                                                                   show.output = FALSE,
+                                                                   plot        = FALSE) ))
+  shape_grandparents <- parameters ["shape"]
+  rate_grandparents  <- parameters ["rate"]
+  
+  # infection fatality rate (percentages) for child, parents (adults), and grandparents (older adults)
+  ifr_child        <- rgamma (n = psa, shape = shape_child,        rate = rate_child)         
+  ifr_parents      <- rgamma (n = psa, shape = shape_parents,      rate = rate_parents)       
+  ifr_grandparents <- rgamma (n = psa, shape = shape_grandparents, rate = rate_grandparents)  
+  
+  # ----------------------------------------------------------------------------
+  # output -- gamma -- shape and rate; and IFR (child, adults, older adults)
+  
+  print ("child parameters -- gamma -- shape and rate")
+  print (shape_child)
+  print (rate_child)
+  
+  print ("IFR - child")
+  print (quantile (ifr_child, c(0.5, 0.025, 0.975)))
+  
+  print ("adults parameters -- gamma -- shape and rate")
+  print (shape_parents)
+  print (rate_parents)
+  
+  print ("IFR - parents")
+  print (quantile (ifr_parents, c(0.5, 0.025, 0.975)))
+  
+  print ("older adults parameters -- gamma -- shape and rate")
+  print (shape_grandparents)
+  print (rate_grandparents)
+  
+  print ("IFR - grandparents")
+  print (quantile (ifr_grandparents, c(0.5, 0.025, 0.975)))
+  # ----------------------------------------------------------------------------
+  
 }
 # ------------------------------------------------------------------------------
 
@@ -131,5 +185,8 @@ risk_calculation (visits = 3)
 
 # each immunisation visit of EPI-2 and EPI-3
 risk_calculation (visits = 1)
+
+# infection fatality rate estimates 
+ifr ()
 # ------------------------------------------------------------------------------
 

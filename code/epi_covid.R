@@ -1262,7 +1262,7 @@ benefit_risk_ratio_map <- function (benefit_risk_summary,
                               na.value = "grey80",
                               limits = c (0.05, 700),
                               trans = "log10",
-                              breaks = c(0.2, 1, 10, 100, 500)) +
+                              breaks = c(0.1, 1, 10, 100)) +
                               # breaks = c(0.2, 1, 5, 10, 50, 100, 500)) +
 
 
@@ -1670,7 +1670,6 @@ setwd ("../")
 
 set.seed (1)  # seed for random number generator
 psa <- 4000   # number of runs for probabilistic sensitivity analysis
-# psa <- 50
 
 suspension_periods        <- c ( 6/12)  # unit in year
 suspension_period_strings <- c ("6 months")
@@ -1686,7 +1685,6 @@ reduced_transmission <- 0.5   # 50% (social distancing will increase inter-pande
 
 # scenarios: high impact and low impact
 for (impact in c("low", "high")) {
-# for (impact in c("high")) {
   
   tic ()
 
