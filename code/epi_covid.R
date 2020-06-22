@@ -490,10 +490,14 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
 
   # ----------------------------------------------------------------------------
   # excess household risk from vaccine clinic visits (1 or 2 or 3 visits)
+  
+  pe_v1 <- (1 - ( (1 - pv * tv)^(2*1) * (1 - p0 * t0)^(2*1*n) ) ) * (1 - theta)  # 1 visit
+  pe_v2 <- (1 - ( (1 - pv * tv)^(2*2) * (1 - p0 * t0)^(2*2*n) ) ) * (1 - theta)  # 2 visits
+  pe_v3 <- (1 - ( (1 - pv * tv)^(2*3) * (1 - p0 * t0)^(2*3*n) ) ) * (1 - theta)  # 3 visits
 
-  pe_v1 <- (1 - ( (1 - tv)^(2*1*pv) * (1 - t0)^(2*1*p0*n) ) ) * (1 - theta)  # 1 visit
-  pe_v2 <- (1 - ( (1 - tv)^(2*2*pv) * (1 - t0)^(2*2*p0*n) ) ) * (1 - theta)  # 2 visits
-  pe_v3 <- (1 - ( (1 - tv)^(2*3*pv) * (1 - t0)^(2*3*p0*n) ) ) * (1 - theta)  # 3 visits
+  # pe_v1 <- (1 - ( (1 - tv)^(2*1*pv) * (1 - t0)^(2*1*p0*n) ) ) * (1 - theta)  # 1 visit
+  # pe_v2 <- (1 - ( (1 - tv)^(2*2*pv) * (1 - t0)^(2*2*p0*n) ) ) * (1 - theta)  # 2 visits
+  # pe_v3 <- (1 - ( (1 - tv)^(2*3*pv) * (1 - t0)^(2*3*p0*n) ) ) * (1 - theta)  # 3 visits
 
   # ----------------------------------------------------------------------------
   # infection fatality rate for child, parents (adults), and grandparents (older adults)
