@@ -3,6 +3,8 @@
 # and each immunisation visit of EPI-2 and EPI-3 add 2% to the probability of 
 # a SARS-CoV-2 infection in the household. 
 
+library (rriskDistributions)
+
 rm (list = ls ())
 
 # ------------------------------------------------------------------------------
@@ -57,9 +59,11 @@ risk_calculation <- function (visits,
   tv <- iota_2 * to 
   
   # Probability for SARS-CoV-2 infection for the whole household of a child who gets vaccinated
-  P <- (1 - (1-tv)^(2*visits*pv) * (1 - to)^(2*visits*po*n))
+  P <- (1 - (1 - pv*tv)^(2*visits) * (1 - po*to)^(2*visits*n))
+  # P <- (1 - (1-tv)^(2*visits*pv) * (1 - to)^(2*visits*po*n))
   
-  # Probability for excess SARS-CoV-2 infection for the whole household of a child who gets vaccinated
+  # Probability for excess SARS-CoV-2 infection for the whole household of a
+  # child who gets vaccinated
   Pe <- P * (1 - theta)
   
   # print prevalence (to address reviewer comment)
