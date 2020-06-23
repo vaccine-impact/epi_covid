@@ -5,16 +5,17 @@
 # suspending immunisation programmes in Africa during the COVID-19 pandemic.
 
 # load libraries
-library (countrycode)
-library (data.table)
-library (ggplot2)
-library (rnaturalearth)
-library (rnaturalearthdata)
-library (rriskDistributions)
-library (scales)
-library (tictoc)
-library (tidyverse)
-library (bayestestR)
+library (countrycode)         # country codes
+library (data.table)          # data table
+library (ggplot2)             # plot
+library (rnaturalearth)       # # world map data
+library (rnaturalearthdata)   # world vector map data
+library (rriskDistributions)  # fitting distributions to data or known quantiles
+library (scales)              # plot scaling
+library (tictoc)              # timer 
+library (tidyverse)           # data frame
+library (bayestestR)          # posterior sampling using high density interval
+library (lhs)                 # latin hypercube sampling
 
 
 # remove all objects from workspace
@@ -415,6 +416,25 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
   # then what is the estimated number of covid deaths that are prevented
   # by suspension of EPI
   vaccine_covid_impact [, suspension_period := suspension_period]
+  
+  #-----------------------------------------------------------------------------
+  # construct a random Latin hypercube design (10 parameters)
+  cube <- randomLHS (n = psa, 
+                     k = 10)
+  
+  # set column names corresponding to the random variables to which this
+  # latin hyper cube sample will be applied
+  colnames (cube) <- c("big_t", 
+                       "r0", 
+                       "psi", 
+                       "n", 
+                       "iota1", 
+                       "iota2", 
+                       "big_n", 
+                       "ifr_child", 
+                       "ifr_parents", 
+                       "ifr_grandparents")
+  #-----------------------------------------------------------------------------
 
   # ----------------------------------------------------------------------------
   # infection risk from contacts due to vaccination visits
@@ -447,31 +467,49 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
   # big_t <- runif  (n = psa, min = big_t-30, max = big_t+30)
   # T <- uniform (5 months, 6 months)
   # 2020 leap year -- 366 days in the year
-  big_t <- runif  (n = psa, min = 5/12 * 366, max = 6/12 * 366)
-
+  big_t <- qunif (p   = cube [, "big_t"],  # latin hyper cube sampling  
+                  min = 5/12 * 366, 
+                  max = 6/12 * 366)
+  # big_t <- runif  (n = psa, min = 5/12 * 366, max = 6/12 * 366)
+  
   # duration of period at risk of SARS-CoV-2 ** in year units **
   risk_period = big_t / 366
 
   # basic reproduction number for SARS-CoV-2
-  r0    <- rgamma (n = psa, shape = 25, scale = (2.5/25))
+  r0 <- qgamma (p     = cube [, "r0"],  # latin hyper cube sampling  
+                shape = 25, 
+                scale = (2.5/25))
+  # r0    <- rgamma (n = psa, shape = 25, scale = (2.5/25))
 
   # proportion of SARS-CoV-2 infected population at the end of the study period
   theta <- 1 - (1/r0)
 
   # duration of infectiousness
-  psi   <- rgamma (psa, shape = 14, scale = (7/14))
+  psi <- qgamma (p     = cube [, "psi"],  # latin hyper cube sampling
+                 shape = 14, 
+                 scale = (7/14))
+  # psi   <- rgamma (psa, shape = 14, scale = (7/14))
 
   # number of non-vaccinator contacts of child and carer during their travel to
   # the vaccine clinic and in the waiting room
-  n     <- runif  (n = psa, min = 1, max = 10)
-
+  n <- qunif (p   = cube [, "n"],  # latin hyper cube sampling
+              min = 1, 
+              max = 10)
+  # n     <- runif  (n = psa, min = 1, max = 10)
+  
   # risk ratio of a vaccinator being infected and infectious
   # versus another community member
-  iota1 <- runif  (n = psa, min = 1, max = 4)
+  iota1 <- qunif (p   = cube [, "iota1"],  # latin hyper cube sampling
+                  min = 1, 
+                  max = 4)
+  # iota1 <- runif (n = psa, min = 1, max = 4)
 
   # risk ratio per potentially infectious contact of a vaccinator transmitting
   # versus another community member
-  iota2 <- runif  (n = psa, min = 0.25, max = 1)
+  iota2 <- qunif (p   = cube [, "iota2"],  # latin hyper cube sampling
+                  min = 0.25, 
+                  max = 1)
+  # iota2 <- runif (n = psa, min = 0.25, max = 1)
 
   # prevalence of infectious community members on any given day
   p0    <- (theta * psi) / big_t
@@ -480,8 +518,11 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
   pv    <- iota1 * p0
 
   # average number of transmission relevant contacts of a community member per day
-  big_n <- runif  (n = psa, min = 2, max = 10)
-
+  big_n <- qunif (p   = cube [, "big_n"],  # latin hyper cube sampling
+                  min = 2, 
+                  max = 10)
+  # big_n <- runif  (n = psa, min = 2, max = 10)
+  
   # probability of transmission given potentially infectious contact for other community members
   t0    <- r0 / (big_n * psi)
 
@@ -539,10 +580,25 @@ estimate_covid_deaths <- function (vaccine_impact_psa,
   shape_grandparents <- parameters ["shape"]
   rate_grandparents  <- parameters ["rate"]
   
+  # ----------------------------------------------------------------------------
   # infection fatality rate (percentages) for child, parents (adults), and grandparents (older adults)
-  ifr_child        <- rgamma (n = psa, shape = shape_child,        rate = rate_child)         
-  ifr_parents      <- rgamma (n = psa, shape = shape_parents,      rate = rate_parents)       
-  ifr_grandparents <- rgamma (n = psa, shape = shape_grandparents, rate = rate_grandparents)  
+  # ifr_child        <- rgamma (n = psa, shape = shape_child,        rate = rate_child)         
+  # ifr_parents      <- rgamma (n = psa, shape = shape_parents,      rate = rate_parents)       
+  # ifr_grandparents <- rgamma (n = psa, shape = shape_grandparents, rate = rate_grandparents)  
+  
+  # latin hyper cube sampling 
+  ifr_child        <- qgamma (p     = cube [, "ifr_child"],  
+                              shape = shape_child,        
+                              rate  = rate_child)    
+  
+  ifr_parents      <- qgamma (p     = cube [, "ifr_parents"],  
+                              shape = shape_parents,      
+                              rate  = rate_parents)       
+  
+  ifr_grandparents <- qgamma (p     = cube [, "ifr_grandparents"],  
+                              shape = shape_grandparents, 
+                              rate  = rate_grandparents) 
+  # ----------------------------------------------------------------------------
   
   # change infection fatality rate (percentages) to absolute values
   ifr_child        <- ifr_child        / 100
@@ -1673,7 +1729,7 @@ source_wd <- getwd ()
 setwd ("../")
 
 set.seed (1)  # seed for random number generator
-psa <- 1000   # number of runs for probabilistic sensitivity analysis
+psa <- 4000   # number of runs for probabilistic sensitivity analysis
 
 suspension_periods        <- c ( 6/12)  # unit in year
 suspension_period_strings <- c ("6 months")
