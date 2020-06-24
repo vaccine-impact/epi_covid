@@ -1728,7 +1728,7 @@ print (Sys.time ())
 source_wd <- getwd ()
 setwd ("../")
 
-set.seed (1)  # seed for random number generator
+set.seed (3)  # seed for random number generator
 psa <- 4000   # number of runs for probabilistic sensitivity analysis
 
 suspension_periods        <- c ( 6/12)  # unit in year
