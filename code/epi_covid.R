@@ -1745,7 +1745,6 @@ reduced_transmission <- 0.5   # 50% (social distancing will increase inter-pande
 
 # scenarios: high impact and low impact
 for (impact in c("low", "high")) {
-  
   tic ()
 
   # different suspension periods
